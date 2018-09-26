@@ -2,7 +2,67 @@
 library(deSolve)
 library(ggplot2)
 
-# Equations for Horn et al extended SEIR model (https://doi.org/10.1186/s12916-018-1094-7)
+# Function to solve model given initial conditions
+model <- function(initial_states, time, parameters, func = func,
+                  event = FALSE, time2 = NULL, func2 = lambda){
+  if(!is.logical(event))
+    stop("event must be TRUE or FALSE")
+  if(event == FALSE){
+    out <- lsoda(y = initial_states, times = time, func = func, parms = parameters)
+    out <- as.data.frame(out)}
+  if(event == TRUE){
+    if(is.null(time2)){
+      stop("event times must be given")
+    }
+    out <- lsoda(y = initial_states, times = time, func = func, parms = parameters,
+                 events = list(func = func2, time = time2))
+    out <- as.data.frame(out)}
+  return(out)}
+
+# Garnett and Grenfell
+gg <- function(time, state, params){
+  with(as.list(c(state, params)), {
+    # Maternal protection
+    dM <- - (delta + mu)
+    # Susceptible
+    dS <- delta * M - (lambda + mu) * S
+    # Exposed (latent)
+    dE <- lambda * S - (sigma + mu) * E
+    # Infectious
+    dI <- sigma * E - (nu + mu) * I
+    # Virus carriers
+    dV <- - mu * rho * V
+    # Zoster
+    #dZ <- integrate(V * rho - (mu + gamma) * Z, lower = 0, upper = Inf)
+    
+    # Force of infection
+    lambda <- beta * I
+    
+    out <- list(c(dM, dS, dE, dI, dV), c(lambda = lambda, mu = mu))
+    return(out)})}
+
+t <- 50
+time <- seq(0, t, by = t / (2 * length(1 : t)))
+
+initial_states <- c(M = integrate(function(a){1 / ((a + 1) * sqrt(a))},
+                                  #function(a){N(a) * mu(a)}, 
+                                  # Placeholder from help page until we have data
+                                  lower = 0, upper = Inf)$value,
+                    S = 0, E = 0, I = 0, V = 0)
+parameters <- c(lambda = 0.1,
+                beta = 0.5,
+                delta = 0.74, 
+                mu = 0.14,
+                sigma = 0.01,
+                nu = 0.61,
+                rho = 1.18,
+                gamma = 0.45,
+                rho = 0.345)
+
+ggplot(data = model(initial_states, time, parameters, func = gg),
+       mapping = aes(x = time, y = S)) + geom_line()
+
+# Horn et al
 horn <- function(time, state, params){
   with(as.list(c(state, params)), {
     # Maternal protection
@@ -58,23 +118,6 @@ horn <- function(time, state, params){
                  dEB, dIB, dRB, dSZB, dIZB, dRZB, dV1V, dV2V, dSZV, dIZV, dRZV))
     return(out)})}
 
-# Solve the above given initial conditions
-model <- function(initial_states, time, parameters, func = horn,
-                  event = FALSE, time2 = NULL, func2 = lambda){
-  if(!is.logical(event))
-    stop("event must be TRUE or FALSE")
-  if(event == FALSE){
-    out <- lsoda(y = initial_states, times = time, func = func, parms = parameters)
-    out <- as.data.frame(out)}
-  if(event == TRUE){
-    if(is.null(time2)){
-      stop("event times must be given")
-    }
-    out <- lsoda(y = initial_states, times = time, func = func, parms = parameters,
-               events = list(func = func2, time = time2))
-    out <- as.data.frame(out)}
-  return(out)}
-
 # Example without force of infection function (values chosen arbitrarily)
 t <- 50
 time <- seq(0, t, by = t / (2 * length(1 : t)))
@@ -87,5 +130,5 @@ parameters <- c(b = 0.74, v = 0.14, lambda = 0.01, c = 0.61, d = 1.18, e = 1.09,
                 f = 1.06, g = 0.02, h = 1.42, i = 1.26, v1e = 0.69, vw1 = 0.47,
                 vw2 = 0.45, k = 3.32, v2e = 1.13, v2 = 0.11, d2 = 2.59, j = 0.43)
 
-ggplot(data = model(initial_states, time, parameters),
+ggplot(data = model(initial_states, time, parameters, func = horn),
        mapping = aes(x = time, y = S)) + geom_line()
