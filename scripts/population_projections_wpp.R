@@ -18,7 +18,6 @@ data <- data %>%
                     620, 642, 703, 705, 724, 752, 826)) %>%
   gather(Sex, Population, PopMale:PopTotal, factor_key = TRUE) %>%
   filter(Sex != "PopTotal")
-#data %>% glimpse()
 
 # Plot smoothed projections
 theme_set(theme_bw())
@@ -91,3 +90,56 @@ p3 <- ggplot(data = data %>% filter(Time == 2100),
   scale_fill_grey(start = 0.6, end = 0.4) +
   guides(colour = guide_legend(override.aes = list(fill = NA)))
 grid.arrange(p1, p2, p3, ncol = 3)
+
+# Indicators
+file <- "https://population.un.org/wpp/DVD/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2017_Period_Indicators_Medium.csv"
+med <- read.csv(file, header = TRUE, na.strings = "NULL")
+file <- "https://population.un.org/wpp/DVD/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2017_Period_Indicators_OtherVariants.csv"
+others <- read.csv(file, header = TRUE, na.strings = "NULL")
+names(others)[1] <- "LocID"
+others$TFR <- as.numeric(levels(others$TFR)[others$TFR])
+others$NRR <- as.numeric(levels(others$NRR)[others$NRR])
+others$CBR <- as.numeric(levels(others$CBR)[others$CBR])
+others$Births <- as.numeric(levels(others$Births)[others$Births])
+others$CDR <- as.numeric(levels(others$CDR)[others$CDR])
+others$Deaths <- as.numeric(levels(others$Deaths)[others$Deaths])
+others$DeathsMale <- as.numeric(levels(others$DeathsMale)[others$DeathsMale])
+others$DeathsFemale <- as.numeric(levels(others$DeathsFemale)[others$DeathsFemale])
+others$NatIncr <- as.numeric(levels(others$NatIncr)[others$NatIncr])
+data <- full_join(med, others)
+
+# Select EU/EEA countries
+data <- data %>%
+  filter(LocID %in% c(40, 56, 100, 191, 196, 203, 208, 233, 246, 250, 276, 300,
+                      348, 352, 372, 380, 428, 438, 440, 442, 470, 528, 578, 616,
+                      620, 642, 703, 705, 724, 752, 826))
+
+ggplot(data = data, 
+       mapping = aes(x = Time,
+                     y = NetMigrations,
+                     group = Variant, colour = Variant)) +
+  geom_line() +
+  facet_wrap(. ~ Location, scales = "free_y") +
+  labs(title = "Net migration") +
+  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
+  scale_colour_viridis(discrete = TRUE)
+
+ggplot(data = data, 
+       mapping = aes(x = Time,
+                     y = IMR,
+                     group = Variant, colour = Variant)) +
+  geom_line() +
+  facet_wrap(. ~ Location, scales = "free_y") +
+  labs(title = "Infant mortality rate") +
+  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
+  scale_colour_viridis(discrete = TRUE)
+
+ggplot(data = data, 
+       mapping = aes(x = Time,
+                     y = GrowthRate,
+                     group = Variant, colour = Variant)) +
+  geom_line() +
+  facet_wrap(. ~ Location, scales = "free_y") +
+  labs(title = "Population growth rate") +
+  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
+  scale_colour_viridis(discrete = TRUE)
