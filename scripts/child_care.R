@@ -33,7 +33,10 @@ ggplot(data = ilc_caindformal %>% filter(geo == "EU28"),
 
 # Country level values
 ggplot(data = ilc_caindformal %>%
-         filter(!(geo %in% c("EA18", "EA19", "EU27", "EU28"))),
+         filter(geo %in% c("AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES",
+                           "FI", "FR", "GB", "GR", "HR", "HU", "IE", "IS", "IT",
+                           "LI", "LT", "LU", "LV", "MT", "NL", "NO", "PL", "PT",
+                           "RO", "SE", "SI", "SK")),
        mapping = aes(x = time, y = values,
                      group = geo, colour = geo)) +
   geom_line(stat = "summary", fun.y = "mean")  +
