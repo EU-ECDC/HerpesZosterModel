@@ -112,7 +112,9 @@ data <- full_join(med, others)
 data <- data %>%
   filter(LocID %in% c(40, 56, 100, 191, 196, 203, 208, 233, 246, 250, 276, 300,
                       348, 352, 372, 380, 428, 438, 440, 442, 470, 528, 578, 616,
-                      620, 642, 703, 705, 724, 752, 826))
+                      620, 642, 703, 705, 724, 752, 826)) %>%
+  gather(Sex, Population, PopMale:PopTotal, factor_key = TRUE) %>%
+  filter(Sex == "PopTotal")
 
 ggplot(data = data, 
        mapping = aes(x = Time,
@@ -143,3 +145,37 @@ ggplot(data = data,
   labs(title = "Population growth rate") +
   theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
   scale_colour_viridis(discrete = TRUE)
+
+data <- data %>%
+  filter(LocID %in% c(40, 56, 100, 191, 196, 203, 208, 233, 246, 250, 276, 300,
+                      348, 352, 372, 380, 428, 438, 440, 442, 470, 528, 578, 616,
+                      620, 642, 703, 705, 724, 752, 826)) %>%
+  gather(Sex, Population, PopMale:PopTotal, factor_key = TRUE) %>%
+  filter(Sex == "PopTotal")
+
+# Plot changes in age group 0-4 over time
+ggplot(data = left_join(data %>%
+                          filter(AgeGrp == "0-4") %>%
+                          group_by(Location, Variant),
+                        data %>%
+                          filter(AgeGrp == "0-4", Time == 2015) %>%
+                          group_by(Location, Variant) %>%
+                          mutate(Subtr = Population)) %>%
+         select(Time, Location, Variant, Population, Subtr) %>%
+         mutate(Time =  factor(Time, levels = c(2015,
+                                                seq(1950, 2015 - 1, 1),
+                                                seq(2015 + 1, 2100, 1)))) %>%
+         group_by(Location, Variant) %>%
+         arrange(Time) %>%
+         fill(Subtr, Subtr) %>%
+         mutate(Time = factor(Time, levels = c(seq(1950, 2100, 1)))) %>%
+         mutate (PopDiff = Population - Subtr),
+       mapping = aes(x = Time, y = PopDiff,
+                     colour = Location, group = Location)) +
+  geom_line(aes(y = PopDiff)) +
+  labs(title = "Changes from 2015 values", subtitle = "Population aged 0-4") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  facet_grid(. ~ Variant) +
+  scale_colour_viridis(discrete = TRUE, option = "C") +
+  scale_x_discrete(breaks = c("1950", "2000", "2015", "2050", "2100"),
+                     labels = c("1950", "2000", "2015", "2050", "2100"))
