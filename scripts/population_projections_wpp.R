@@ -117,6 +117,7 @@ data <- data %>%
   filter(Sex == "PopTotal")
 
 ggplot(data = data, 
+
        mapping = aes(x = Time,
                      y = NetMigrations,
                      group = Variant, colour = Variant)) +
@@ -146,6 +147,8 @@ ggplot(data = data,
   theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
   scale_colour_viridis(discrete = TRUE)
 
+# Plot changes in age group 0-4 over time
+data <- full_join(med, others)
 data <- data %>%
   filter(LocID %in% c(40, 56, 100, 191, 196, 203, 208, 233, 246, 250, 276, 300,
                       348, 352, 372, 380, 428, 438, 440, 442, 470, 528, 578, 616,
@@ -153,7 +156,6 @@ data <- data %>%
   gather(Sex, Population, PopMale:PopTotal, factor_key = TRUE) %>%
   filter(Sex == "PopTotal")
 
-# Plot changes in age group 0-4 over time
 ggplot(data = left_join(data %>%
                           filter(AgeGrp == "0-4") %>%
                           group_by(Location, Variant),
