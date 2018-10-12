@@ -141,9 +141,7 @@ data <- full_join(med, others)
 data <- data %>%
   filter(LocID %in% c(40, 56, 100, 191, 196, 203, 208, 233, 246, 250, 276, 300,
                       348, 352, 372, 380, 428, 438, 440, 442, 470, 528, 578, 616,
-                      620, 642, 703, 705, 724, 752, 826)) %>%
-  gather(Sex, Population, PopMale:PopTotal, factor_key = TRUE) %>%
-  filter(Sex == "PopTotal")
+                      620, 642, 703, 705, 724, 752, 826))
 
 # Plot indicators
 ggplot(data = data,
