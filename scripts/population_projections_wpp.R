@@ -21,17 +21,17 @@ data <- data %>%
 
 # Plot smoothed projections
 theme_set(theme_bw())
-p <- ggplot(data = data, 
+(p <- ggplot(data = data, 
             mapping = aes(x = Time, colour = Variant,
                           y = Population, linetype = Sex)) + 
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), se = FALSE) +
   facet_wrap(. ~ Location, scales = "free_y") +
   scale_colour_viridis(option = "A", discrete = TRUE) +
   geom_vline(mapping = aes(xintercept = 2015)) +
-  labs(y = "Population in thousands")
+  labs(y = "Population in thousands"))
 
 # Save output
-tiff(filename = "./figures/curves.tif",
+tiff(filename = "../figures/pop_pred_curves.tif",
      width = 800, height = 500)
 p
 dev.off()
@@ -97,10 +97,14 @@ p3 <- ggplot(data = data %>% filter(Time == 2100) %>% filter(Sex == "PopTotal"),
   scale_colour_viridis(option = "A", discrete = TRUE) +
   scale_fill_grey(start = 0.6, end = 0.4) +
   guides(colour = guide_legend(override.aes = list(fill = NA)))
-grid.arrange(p1, p2, p3, ncol = 3)
 
-# Save output
-tiff(filename = "./figures/pyramids_2100.tif",
+# Save outputs
+tiff(filename = "../figures/pyramids_over_time.tif",
+     width = 2400, height = 1000)
+grid.arrange(p1, p2, p3, ncol = 3)
+dev.off()
+
+tiff(filename = "../figures/pyramids_2100.tif",
      width = 1200, height = 1000)
 p3
 dev.off()
@@ -134,13 +138,13 @@ p5 <- ggplot(data = data %>% filter(Time == 2100, LocID == 300),
   theme(legend.position="none")
 
 # Save output
-tiff(filename = "./figures/pyramids_greece.tif",
+tiff(filename = "../figures/pyramids_greece.tif",
      width = 1200, height = 600)
 grid.arrange(p5, p4, ncol = 2)
 dev.off()
 
 # Plot changes in age group 0-4 over time
-ggplot(data = left_join(data %>%
+(p <- ggplot(data = left_join(data %>%
                           filter(Sex == "PopTotal") %>%
                           filter(AgeGrp == "0-4") %>%
                           group_by(Location, Variant),
@@ -164,9 +168,15 @@ ggplot(data = left_join(data %>%
   labs(title = "Changes from 2015 values", subtitle = "Population aged 0-4") +
   theme(axis.text.x = element_text(angle = 90)) +
   facet_grid(. ~ Variant) +
-  scale_colour_viridis(discrete = TRUE, option = "C") +
+  scale_colour_viridis(discrete = TRUE, option = "E") +
   scale_x_discrete(breaks = c("1950", "2000", "2015", "2050", "2100"),
-                   labels = c("1950", "2000", "2015", "2050", "2100"))
+                   labels = c("1950", "2000", "2015", "2050", "2100")))
+
+# Save output
+tiff(filename = "../figures/changes_pop_age_0-4.tif",
+     width = 1200, height = 600)
+p
+dev.off()
 
 # Load indicators
 file <- "https://population.un.org/wpp/DVD/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2017_Period_Indicators_Medium.csv"
@@ -192,7 +202,7 @@ data <- data %>%
                       620, 642, 703, 705, 724, 752, 826))
 
 # Plot indicators
-ggplot(data = data,
+(p1 <- ggplot(data = data,
        mapping = aes(x = Time,
                      y = NetMigrations,
                      group = Variant, colour = Variant)) +
@@ -200,9 +210,9 @@ ggplot(data = data,
   facet_wrap(. ~ Location, scales = "free_y") +
   labs(title = "Net migration") +
   theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(discrete = TRUE)
+  scale_colour_viridis(discrete = TRUE))
 
-ggplot(data = data, 
+(p2 <- ggplot(data = data, 
        mapping = aes(x = Time,
                      y = IMR,
                      group = Variant, colour = Variant)) +
@@ -210,9 +220,9 @@ ggplot(data = data,
   facet_wrap(. ~ Location, scales = "free_y") +
   labs(title = "Infant mortality rate") +
   theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(discrete = TRUE)
+  scale_colour_viridis(discrete = TRUE))
 
-ggplot(data = data, 
+(p3 <- ggplot(data = data, 
        mapping = aes(x = Time,
                      y = GrowthRate,
                      group = Variant, colour = Variant)) +
@@ -220,4 +230,20 @@ ggplot(data = data,
   facet_wrap(. ~ Location, scales = "free_y") +
   labs(title = "Population growth rate") +
   theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(discrete = TRUE)
+  scale_colour_viridis(discrete = TRUE))
+
+# Save outputs
+tiff(filename = "../figures/changes_migration.tif",
+     width = 1800, height = 1000)
+p1
+dev.off()
+
+tiff(filename = "../figures/changes_inft_mortality.tif",
+     width = 1800, height = 1000)
+p2
+dev.off()
+
+tiff(filename = "../figures/changes_pop_growth.tif",
+     width = 1800, height = 1000)
+p3
+dev.off()

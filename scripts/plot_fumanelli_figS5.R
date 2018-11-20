@@ -1,6 +1,5 @@
 # Load required packages
 library(eurostat) # For downloading data
-library(plyr)
 library(dplyr)
 library(ggplot2) # For plotting
 
@@ -17,7 +16,7 @@ data <- cens_01nsctz %>%
   select(age, geo, values) %>% 
   summarise(n = sum(values)) %>%
   group_by(geo) %>%
-  mutate(perc = n / sum(n)) 
+  mutate(perc = (n / sum(n)) * 100) 
 # Relevel age factor to be in correct order
 data$age <- factor(data$age, levels = c("Y_LT5", "Y5-9", "Y10-14", "Y15-19",
                                         "Y20-24", "Y25-29", "Y30-34", "Y35-39",
@@ -25,8 +24,15 @@ data$age <- factor(data$age, levels = c("Y_LT5", "Y5-9", "Y10-14", "Y15-19",
                                         "Y60-64", "Y65-69", "Y70-74", "Y75-79",
                                         "Y80-84", "Y_GE85", "TOTAL", "UNK"))
 # Plot
-ggplot(data = data, mapping = aes(x = age, y = perc, group = 1)) +
+(p <- ggplot(data = data, mapping = aes(x = age, y = perc, group = 1)) +
   geom_line() +
   facet_wrap(. ~ geo) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(y = "Percent"))
 # TODO: Simulate and add simulations to plots
+
+# Save output
+tiff(filename = "../figures/age_distr_percentage .tif",
+     width = 1000, height = 600)
+p
+dev.off()

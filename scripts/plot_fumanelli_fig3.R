@@ -3,7 +3,7 @@ library(eurostat) # For downloading data
 library(plyr)
 library(dplyr)
 library(ggplot2) # For plotting
-library(gridExtra) 
+library(viridis)
 
 country_codes <- c("AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES",
                    "FI", "FR", "HR", "HU", "IE", "IT", "IS", "LI", "LT", "LU",
@@ -62,8 +62,15 @@ for_plot <- full_join(mean_size, mean_age, by = "geo")
 
 # Plot points
 theme_set(theme_bw())
-ggplot(data = for_plot, mapping = aes(x = mean.x,
+(p <- ggplot(data = for_plot, mapping = aes(x = mean.x,
                                       y = mean.y, colour = geo)) + 
   geom_point() +
   ylim(34, 42) + 
-  labs(x = "size", y = "age")
+  labs(x = "household size", y = "age") +
+  scale_colour_viridis(discrete = TRUE, option = "E"))
+
+# Save output
+tiff(filename = "../figures/avg_hh_members_number_age.tif",
+     width = 600, height = 400)
+p
+dev.off()
