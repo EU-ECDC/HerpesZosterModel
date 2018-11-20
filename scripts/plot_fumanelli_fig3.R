@@ -41,7 +41,7 @@ hou_values$age <- factor(hou_values$age, levels = c("Y_LT5", "Y5-9", "Y10-14", "
 levels(hou_values$age) <- c("5", "7", "12", "17", "22", "27", "32", "37", "42", "47",
                             "52", "57", "62", "67", "72", "77", "82", "87", "92", "97",
                             "100", "TOTAL", "UNK")
-hou_values$age <- as.numeric(as.character(hou_values$age))
+hou_values$age <- as.numeric(levels(hou_values$age)[hou_values$age])
 
 # calculate average size and age, and combine
 mean_size <- hou_values %>%

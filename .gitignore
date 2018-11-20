@@ -16,6 +16,9 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
+# Outputs
+/figures/*
+
 # TeX files
 .pdf
 .log
@@ -23,11 +26,14 @@ vignettes/*.pdf
 .aux
 .toc
 .synctex.gz
+
 ## BibTeX
 .bbl
 .blg
+
 ## beamer
 .snm
 .nav
+
 ## hyperref
 .out
