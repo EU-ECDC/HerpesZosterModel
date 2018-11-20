@@ -1,36 +1,43 @@
 # Load contact matrices
-load(file = "./Data/fumanelli.Rda")
+load(file = "../data/fumanelli.Rda")
 
 # Load required packages
 library(reshape2) # For melting data for plotting
 library(ggplot2) # For plotting
+theme_set(theme_bw())
 library(viridis) # Colour blind friendly and prints well in black and white
 library(gridExtra) # For combining plots
 
 # Recreate Figure 2 from Fumanelli et al 2012 (the UK)
 uk_melt <- melt(as.matrix(fumanelli$GBR$household))
 hm1 <- ggplot(data = uk_melt, aes(x = Var1, y = Var2, fill = value)) + 
-  geom_tile()  + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
+  geom_tile() + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
   labs(x = "Age", y = "Age of contact", title = "Household")
 uk_melt <- melt(as.matrix(fumanelli$GBR$school))
 hm2 <- ggplot(data = uk_melt, aes(x = Var1, y = Var2, fill = value)) + 
-  geom_tile()  + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
+  geom_tile() + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
   labs(x = "Age", y = "Age of contact", title = "School")
 uk_melt <- melt(as.matrix(fumanelli$GBR$workplace))
 hm3 <- ggplot(data = uk_melt, aes(x = Var1, y = Var2, fill = value)) + 
-  geom_tile()  + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
+  geom_tile() + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
   labs(x = "Age", y = "Age of contact", title = "Workplace")
 uk_melt <- melt(as.matrix(fumanelli$GBR$general))
 hm4 <- ggplot(data = uk_melt, aes(x = Var1, y = Var2, fill = value)) + 
-  geom_tile()  + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
+  geom_tile() + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
   labs(x = "Age", y = "Age of contact", title = "General community")
 total <- fumanelli$GBR$household + fumanelli$GBR$school + 
   fumanelli$GBR$workplace + fumanelli$GBR$general
 uk_melt <- melt(as.matrix(total))
 hm5 <- ggplot(data = uk_melt, aes(x = Var1, y = Var2, fill = value)) + 
-  geom_tile()  + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
+  geom_tile() + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
   labs(x = "Age", y = "Age of contact", title = "Total")
-grid.arrange(hm1, hm2, hm3, hm4, hm5, layout_matrix = rbind(c(1, 2, 3), c(4, 5, NA)))
+
+# Save output
+tiff(filename = "../figures/contact_uk.tif",
+     width = 1000, height = 600)
+grid.arrange(hm1, hm2, hm3, hm4, hm5,
+             layout_matrix = rbind(c(1, 2, 3), c(4, 5, NA)))
+dev.off()
 
 #TODO: Add plot f
 #It would seem that the percentages are created with something like 
