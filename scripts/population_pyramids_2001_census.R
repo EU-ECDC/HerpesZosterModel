@@ -2,6 +2,7 @@
 library(eurostat) # For downloading data
 library(dplyr)
 library(ggplot2) # For plotting
+library(scales)
 
 # Load data
 # Eurostat data "Population by sex, age group and country of citizenship"
@@ -18,13 +19,21 @@ cens_01nsctz <- cens_01nsctz %>%
   filter(sex != "T", age != "TOTAL", age != "UNK")
 
 theme_set(theme_bw())
-ggplot(data = cens_01nsctz, 
-       mapping = aes(x = age, fill = sex, 
-                     y = ifelse(test = sex == "M", 
-                                yes = -values, no = values))) +
+p <- ggplot(data = cens_01nsctz, 
+            mapping = aes(x = age, fill = sex, 
+                          y = ifelse(test = sex == "M", 
+                                     yes = -values, no = values))) +
   geom_bar(stat = "identity") +
   scale_y_continuous(labels = abs, limits = max(cens_01nsctz$values) * c(-1, 1)) +
-  labs(y = "population") +
+  labs(y = "Population", x = "Age") +
   coord_flip() +
   facet_wrap(. ~ geo, scales = "free_x") +
-  theme(axis.text.x  = element_text(angle = 90, vjust = 1))
+  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
+  scale_fill_grey(start = 0.6, end = 0.4) +
+  scale_x_discrete(labels = function(x){format(x, scientific = FALSE)})
+
+# Save output
+tiff(filename = "./figures/pyramids_2001cens.tif",
+     width = 1200, height = 800)
+p
+dev.off()

@@ -21,12 +21,20 @@ data <- data %>%
 
 # Plot smoothed projections
 theme_set(theme_bw())
-ggplot(data = data, 
-       mapping = aes(x = Time, colour = Variant,
-                     y = Population, linetype = Sex)) + 
-geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), se = FALSE) +
+p <- ggplot(data = data, 
+            mapping = aes(x = Time, colour = Variant,
+                          y = Population, linetype = Sex)) + 
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), se = FALSE) +
   facet_wrap(. ~ Location, scales = "free_y") +
-  scale_colour_viridis(option = "A", discrete = TRUE)
+  scale_colour_viridis(option = "A", discrete = TRUE) +
+  geom_vline(mapping = aes(xintercept = 2015)) +
+  labs(y = "Population in thousands")
+
+# Save output
+tiff(filename = "./figures/curves.tif",
+     width = 800, height = 500)
+p
+dev.off()
 
 # Load UN WPP data by age
 file <- "https://population.un.org/wpp/DVD/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2017_PopulationByAgeSex_Medium.csv"
@@ -90,6 +98,46 @@ p3 <- ggplot(data = data %>% filter(Time == 2100) %>% filter(Sex == "PopTotal"),
   scale_fill_grey(start = 0.6, end = 0.4) +
   guides(colour = guide_legend(override.aes = list(fill = NA)))
 grid.arrange(p1, p2, p3, ncol = 3)
+
+# Save output
+tiff(filename = "./figures/pyramids_2100.tif",
+     width = 1200, height = 1000)
+p3
+dev.off()
+
+p4 <- ggplot(data = data %>% filter(Time == 2100, LocID == 300), 
+             mapping = aes(x = AgeGrp, fill = Sex, 
+                           y = ifelse(test = Sex == "PopMale", 
+                                      yes = -Population, no = Population),
+                           colour = Variant)) +
+  geom_bar(stat = "identity") +
+  labs(y = "Population in thousands", x = "Age group") +
+  coord_flip() +
+  facet_wrap(Variant ~ ., scales = "free_x") +
+  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
+  scale_colour_viridis(option = "A", discrete = TRUE) +
+  scale_fill_grey(start = 0.6, end = 0.4) +
+  guides(colour = guide_legend(override.aes = list(fill = NA)))
+
+p5 <- ggplot(data = data %>% filter(Time == 2100, LocID == 300), 
+             mapping = aes(x = AgeGrp, fill = Sex, 
+                           y = ifelse(test = Sex == "PopMale", 
+                                      yes = -Population, no = Population),
+                           colour = Variant)) +
+  geom_bar(stat = "identity") +
+  labs(y = "Population in thousands", x = "Age group") +
+  coord_flip() +
+  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
+  scale_colour_viridis(option = "A", discrete = TRUE) +
+  scale_fill_grey(start = 0.6, end = 0.4) +
+  guides(colour = guide_legend(override.aes = list(fill = NA))) +
+  theme(legend.position="none")
+
+# Save output
+tiff(filename = "./figures/pyramids_greece.tif",
+     width = 1200, height = 600)
+grid.arrange(p5, p4, ncol = 2)
+dev.off()
 
 # Plot changes in age group 0-4 over time
 ggplot(data = left_join(data %>%
