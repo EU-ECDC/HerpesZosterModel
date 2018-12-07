@@ -17,7 +17,48 @@ model <- function(initial_states, time, parameters, func = func,
     out <- lsoda(y = initial_states, times = time, func = func, parms = parameters,
                  events = list(func = func2, time = time2))
     out <- as.data.frame(out)}
-  return(out)}
+  return(out)
+}
+
+# Model
+generic_three_end_state_model <- function(time, state, params){
+  with(as.list(c(state, params)), {
+    # Start
+    dZ <- - (alpha * R + beta * P + gamma * O)
+    # End
+    dR <- alpha * Z
+    dP <- beta * Z
+    dO <- gamma * Z
+    out <- list(c(dZ, dR, dP, dO),
+                c(alpha = alpha, beta = beta, gamma = gamma))
+    return(out)}
+  )
+}
+
+# Plot model
+library(diagram)
+plot_flows <- function(initial_states, time, parameters, func = generic_three_end_state_model){
+  # Examine first two time states to obtain flow direction
+  model <- model(initial_states, time, parameters, func)
+  changes <- model[2, ] - model[1, ]
+  
+  vec <- as.numeric(changes[names(initial_states)])
+  mat <- t(t(rep(1, length(vec)))) %*% vec
+  colnames(mat) <- rownames(mat) <- names(initial_states)
+  matmat <- as.matrix(sign(mat[1, ]))
+  matmat[1] <- 0 # TODO If sign different draw arrow i.e. match negatives with positive
+  # Currently this works because flows are only coming from the first state
+  plotmat(matmat, box.type = "square", curve = 0)
+
+  # TODO Use absent option from plotmat instead?
+  # TODO Need to ensure some kind of naming system for more flows than this
+  # TODO Use igraph or allow option for both
+  # in plotmat rows are to and columns are from
+  # in igraph rows are from and columns are to
+  # so would need to transpose somewhere if using igraph also
+}
+# Example
+plot_flows(initial_states, time, parameters, func = generic_three_end_state_model)
 
 # Garnett and Grenfell
 gg <- function(time, state, params){
