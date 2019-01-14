@@ -58,6 +58,13 @@ plot_flows <- function(initial_states, time, parameters, func = generic_three_en
   # so would need to transpose somewhere if using igraph also
 }
 # Example
+t <- 50
+time <- seq(0, t, by = t / (2 * length(1 : t)))
+
+initial_states <- c(Z = 10, R = 0, P = 0, O = 0)
+parameters <- c(alpha = 0.1,
+                beta = 0.5,
+                gamma = 0.74)
 plot_flows(initial_states, time, parameters, func = generic_three_end_state_model)
 
 # Garnett and Grenfell
