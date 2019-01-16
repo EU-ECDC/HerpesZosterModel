@@ -25,8 +25,8 @@ uk_melt <- melt(as.matrix(fumanelli$GBR$general))
 hm4 <- ggplot(data = uk_melt, aes(x = Var1, y = Var2, fill = value)) + 
   geom_tile() + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
   labs(x = "Age", y = "Age of contact", title = "General community")
-total <- fumanelli$GBR$household + fumanelli$GBR$school + 
-  fumanelli$GBR$workplace + fumanelli$GBR$general
+total <- 0.3 * fumanelli$GBR$household + 0.18 * fumanelli$GBR$school + 
+  0.19 * fumanelli$GBR$workplace + 0.33 fumanelli$GBR$general
 uk_melt <- melt(as.matrix(total))
 hm5 <- ggplot(data = uk_melt, aes(x = Var1, y = Var2, fill = value)) + 
   geom_tile() + scale_fill_viridis(option = "E", limits = c(-2, 3)) +
