@@ -21,8 +21,8 @@ pop_data <- get_eurostat(id = "demo_pjan")
 mort_data <- get_eurostat(id = "demo_magec")
 
 use <- countries_of_interest[countries_of_interest %in% intersect(pop_data$geo, mort_data$geo)]
-# Remove LI temporarily as it's causing errors
-use <- setdiff(use, "LI")
+# Remove LI and MT temporarily as they're causing errors
+use <- setdiff(use, c("LI", "MT"))
 
 # Fit mortality
 
@@ -56,7 +56,7 @@ plot_mort <- function(country, ...){
     geom_line() +
     geom_ribbon(aes(ymin = fit - se,
                     ymax = fit + se),
-                alpha = 0.2) + 
+                alpha = 0.2)  + 
     theme(plot.title = element_text(hjust = 0.5))
 }
 
@@ -70,5 +70,6 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = here("Figures/mort.tif"), width = 800, height = 600)
 grid.arrange(AT, BE, BG, CY, CZ, DE, DK, EE, EL, ES, FI, FR, HR, HU,
              IE, IS, IT, #LI,
-             LT, LU, LV, MT, NL, NO, PL, PT, RO, SE, SI, SK, UK)
+             LT, LU, LV, #MT, 
+             NL, NO, PL, PT, RO, SE, SI, SK, UK)
 while(!is.null(dev.list())) dev.off()
