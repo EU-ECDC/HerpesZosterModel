@@ -56,7 +56,8 @@ plot_mort <- function(country, ...){
     geom_line() +
     geom_ribbon(aes(ymin = fit - se,
                     ymax = fit + se),
-                alpha = 0.2)
+                alpha = 0.2) + 
+    theme(plot.title = element_text(hjust = 0.5))
 }
 
 # ------------------------------------------------------------------------------
