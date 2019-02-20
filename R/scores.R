@@ -46,6 +46,9 @@ mcc <- function(tp, tn, fp, fn, ...){
 #' @seealso [mcc()]
 #' @keywords classif
 #' @family classification scores
+#' @references 
+#' \insertRef{Soerensen1948}{zostmod}
+#' \insertRef{Tversky1977}{zostmod}
 #' @export
 #' @examples 
 #' f1(tp = 45, fp = 15, fn = 25, tn = 15)
@@ -204,7 +207,8 @@ mark <- tss
 #' @keywords classif
 #' @family classification scores
 #' @references 
-#' \insertRef{Jaccard1908}{zostmod} 
+#' \insertRef{Jaccard1908}{zostmod}
+#' \insertRef{Tversky1977}{zostmod}
 #' @export
 #' @examples 
 #' jacc(tp = 45, fp = 15, fn = 25, tn = 15)
@@ -476,5 +480,111 @@ ignr <- function(...){
 et <- function(tp, tn, fp, fn, ...){
   n <- tp + tn + fp + fn
   score <- (tp - ((tp + fp) * (tp + fn)) / n) / (tp - ((tp + fp) * (tp + fn)) / n + fp + fn)
+  return(score)
+}
+
+#' Gower and Legendre
+#' 
+#' The Gower and Legandre coefficient is given by
+#' \deqn{GL = (TP + TN) / (TP + TN + \theta (FP + FN))}
+#' where \eqn{TP} denotes true positives, \eqn{TN} denotes true negatives,
+#' \eqn{FP} denotes false positives, \eqn{FN} denotes false negatives, and
+#' \eqn{\theta} is a weighting parameter. In our implementation \eqn{\theta}
+#' has a default value of \eqn{1}, making it simple matching.
+#' 
+#' @param tp True positives
+#' @param tn True negatives
+#' @param fp False positives
+#' @param fn False negatives
+#' @seealso [sm() ss() rt()]
+#' @param theta The weighting parameter, defaults to 1
+#' @keywords classif
+#' @family classification scores
+#' @references 
+#' \insertRef{GowerLegendre1986}{zostmod}
+#' @export
+#' @examples 
+#' g1(tp = 45, fp = 15, fn = 25, tn = 15)
+gl <- function(tp, tn, fp, fn, theta = 1, ...){
+  t <- tp + tn
+  f <- fp + fn
+  score <- t / (t + theta * f)
+  return(score)
+}
+
+#' Simple matching
+#' 
+#' The simple matching coefficient is given by
+#' \deqn{SM = (TP + TN) / (TP + TN + FP + FN)}
+#' where \eqn{TP} denotes true positives, \eqn{TN} denotes true negatives,
+#' \eqn{FP} denotes false positives, \eqn{FN} denotes false negatives.
+#' 
+#' @param tp True positives
+#' @param tn True negatives
+#' @param fp False positives
+#' @param fn False negatives
+#' @seealso [gl() rt() ss()]
+#' @keywords classif
+#' @family classification scores
+#' @references 
+#' \insertRef{SokalMichener1958}{zostmod}
+#' @export
+#' @examples 
+#' sm(tp = 45, fp = 15, fn = 25, tn = 15)
+sm <- function(tp, tn, fp, fn, ...){
+  t <- tp + tn
+  n <- tp + tn + fp + fn
+  score <- t / n
+  return(score)
+}
+
+#' Rogers-Tanimoto
+#' 
+#' The Rogers-Tanimoto coefficient is given by
+#' \deqn{RT = (TP + TN) / (TP + TN + 2FP + 2FN)}
+#' where \eqn{TP} denotes true positives, \eqn{TN} denotes true negatives,
+#' \eqn{FP} denotes false positives, \eqn{FN} denotes false negatives.
+#' 
+#' @param tp True positives
+#' @param tn True negatives
+#' @param fp False positives
+#' @param fn False negatives
+#' @seealso [gl() sm() ss()]
+#' @keywords classif
+#' @family classification scores
+#' @export
+#' @examples 
+#' rt(tp = 45, fp = 15, fn = 25, tn = 15)
+rt <- function(tp, tn, fp, fn, ...){
+  t <- tp + tn
+  f2 <- 2 * fp + 2 * fn
+  score <- t / (t + f2)
+  return(score)
+}
+
+
+#' Sokal and Sneath
+#' 
+#' The Sokal and Sneath coefficient is given by
+#' \deqn{SS = (2TP + 2TN) / (2TP + 2TN + FP + FN)}
+#' where \eqn{TP} denotes true positives, \eqn{TN} denotes true negatives,
+#' \eqn{FP} denotes false positives, \eqn{FN} denotes false negatives.
+#' 
+#' @param tp True positives
+#' @param tn True negatives
+#' @param fp False positives
+#' @param fn False negatives
+#' @seealso [gl() sm() ss()]
+#' @keywords classif
+#' @family classification scores
+#' @references 
+#' \insertRef{SokalSneath1963}{zostmod}
+#' @export
+#' @examples 
+#' ss(tp = 45, fp = 15, fn = 25, tn = 15)
+ss <- function(tp, tn, fp, fn, ...){
+  t2 <- 2 * tp + 2 * tn
+  f <- fp + fn
+  score <- t2 / (t2 + f)
   return(score)
 }
