@@ -1,4 +1,4 @@
-This 2x2 table is used with [scores](scores.R)
+This 2x2 table is used with [measures](measures.R)
 
 |   | 1       | 0       |                   |
 |:-:|:-------:|:-------:|:-----------------:|
