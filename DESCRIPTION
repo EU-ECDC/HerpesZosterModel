@@ -1,0 +1,22 @@
+Package: zostmod
+Title: ZM
+Version: 0.0.1
+Authors@R: c(person("European Centre for Disease Prevention and Control (ECDC)", role = c("aut", "cre", "cph")))
+Description: ZM
+License: file LICENSE
+LazyData: true
+# URL: 
+# BugReports: 
+RdMacros: Rdpack
+Imports: 
+  Rdpack
+Depends: 
+  R (>= 3.5.0)
+Suggests:
+  testthat,
+  rmarkdown,
+  knitr
+Roxygen: list(markdown = TRUE)
+VignetteBuilder: knitr
+RoxygenNote: 6.1.0
+Encoding: UTF-8
