@@ -649,7 +649,7 @@ rus <- function(tp, tn, fp, fn, ...){
 #' canberra(x, y)
 #' @export
 #'
-canberra_dist <- function(x, y){
+canberra <- function(x, y){
   sum(abs(x - y) / (abs(x) + abs(y)))  
 }
 
