@@ -588,3 +588,51 @@ ss <- function(tp, tn, fp, fn, ...){
   score <- t2 / (t2 + f)
   return(score)
 }
+
+#' Faith measure
+#' 
+#' The Faith measure is given by
+#' \deqn{(TP - FP - FN) / (TP + TN + FP + FN)}
+#' where \eqn{TP} denotes true positives, \eqn{TN} denotes true negatives,
+#' \eqn{FP} denotes false positives, \eqn{FN} denotes false negatives.
+#' 
+#' @param tp True positives
+#' @param tn True negatives
+#' @param fp False positives
+#' @param fn False negatives
+#' @seealso [rus()]
+#' @keywords classif
+#' @family classification scores
+#' @references 
+#' \insertRef{Faith1983}{zostmod}
+#' @export
+#' @examples 
+#' fai(tp = 45, fp = 15, fn = 25, tn = 15)
+fai <- function(tp, tn, fp, fn, ...){
+  n <- tp + tn + fp + fn
+  score <- (tp - fp - fn) / n
+  return(score)
+}
+
+#' Russell-Rao
+#' 
+#' The Russell-Rao coefficient is given by
+#' \deqn{TP / (TP + TN + FP + FN)}
+#' where \eqn{TP} denotes true positives, \eqn{TN} denotes true negatives,
+#' \eqn{FP} denotes false positives, \eqn{FN} denotes false negatives.
+#' 
+#' @param tp True positives
+#' @param tn True negatives
+#' @param fp False positives
+#' @param fn False negatives
+#' @seealso [fai()]
+#' @keywords classif
+#' @family classification scores
+#' @export
+#' @examples 
+#' rus(tp = 45, fp = 15, fn = 25, tn = 15)
+rus <- function(tp, tn, fp, fn, ...){
+  n <- tp + tn + fp + fn
+  score <- tp / n
+  return(score)
+}
