@@ -643,6 +643,8 @@ rus <- function(tp, tn, fp, fn, ...){
 #'
 #' @param x, y
 #' @seealso [braycurtis()]
+#' @references 
+#' \insertRef{LanceWilliams1966}{zostmod}
 #' @examples
 #' x <- c(1, 2, -3)
 #' y <- c(6, 4, 5)
@@ -659,6 +661,8 @@ canberra <- function(x, y){
 #'
 #' @param x, y
 #' @seealso [canberra()]
+#' @references 
+#' \insertRef{BrayCurtis1957}{zostmod}
 #' @examples
 #' x <- c()
 #' y <- c()
