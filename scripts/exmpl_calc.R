@@ -103,3 +103,57 @@ rbind(c("q", vals$qhat),
 graphics::layout(mat = matrix(cbind(c(1, 2)), ncol = 2, byrow = TRUE))
 plot(vals$lambda, type = "l", ylim = c(0, 1), main = "FoI", xlab = "", ylab = "")
 plot(vals$pi, type = "l", ylim = c(0, 1), main = "Prev", xlab = "", ylab = "")
+
+# Italy
+vals <- invisible(example_calc(cont = contact_matrix(polymod,
+                                                     countries = "Italy",
+                                                     filter = ("phys_contact" > 3))$matrix,
+                               sero = data %>% 
+                                 filter(COUNTRY == "Italy"), 
+                               pop = get_eurostat(id = "demo_pjan") %>% # Population size
+                                 filter(geo == "IT") %>%
+                                 filter(sex == "T") %>%
+                                 filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
+                                 filter(time == "2003-01-01"),
+                               mort = get_eurostat(id = "demo_magec") %>% # Number of deaths
+                                 filter(geo == "IT") %>%
+                                 filter(sex == "T") %>%
+                                 filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
+                                 filter(time == "2006-01-01"),
+                               plot_inputs = FALSE, 
+                               D = 6 / 365, A = 0.5,
+                               Lmax = 83, plots = FALSE, startpar = 5e-2))
+rbind(c("q", vals$qhat),
+      c("R0", vals$R0), 
+      c("R", vals$R))
+# Plot results
+graphics::layout(mat = matrix(cbind(c(1, 2)), ncol = 2, byrow = TRUE))
+plot(vals$lambda, type = "l", ylim = c(0, 1), main = "FoI", xlab = "", ylab = "")
+plot(vals$pi, type = "l", ylim = c(0, 1), main = "Prev", xlab = "", ylab = "")
+
+# UK
+vals <- invisible(example_calc(cont = contact_matrix(polymod,
+                                                     countries = "United Kingdom",
+                                                     filter = ("phys_contact" > 3))$matrix,
+                               sero = data %>% 
+                                 filter(COUNTRY == "UK"), 
+                               pop = get_eurostat(id = "demo_pjan") %>% # Population size
+                                 filter(geo == "UK") %>%
+                                 filter(sex == "T") %>%
+                                 filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
+                                 filter(time == "2003-01-01"),
+                               mort = get_eurostat(id = "demo_magec") %>% # Number of deaths
+                                 filter(geo == "UK") %>%
+                                 filter(sex == "T") %>%
+                                 filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
+                                 filter(time == "2006-01-01"),
+                               plot_inputs = FALSE, 
+                               D = 6 / 365, A = 0.5,
+                               Lmax = 80, plots = FALSE, startpar = 5e-2))
+rbind(c("q", vals$qhat),
+      c("R0", vals$R0), 
+      c("R", vals$R))
+# Plot results
+graphics::layout(mat = matrix(cbind(c(1, 2)), ncol = 2, byrow = TRUE))
+plot(vals$lambda, type = "l", ylim = c(0, 1), main = "FoI", xlab = "", ylab = "")
+plot(vals$pi, type = "l", ylim = c(0, 1), main = "Prev", xlab = "", ylab = "")
