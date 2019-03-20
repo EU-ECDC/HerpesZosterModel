@@ -183,4 +183,27 @@ run_calc(4, D = 6 / 365, A = 0.5, plots = FALSE, startpar = 5e-2)
 # UK
 run_calc(7, D = 6 / 365, A = 0.5, plots = FALSE, startpar = 5e-2)
 
-lapply(1 : length(opts), function(x){run_calc(x, D = 6 / 365, A = 0.5, plots = FALSE, startpar = 5e-2)})
+# Range of starting values -----------------------------------------------------
+runs <- setNames(lapply(1 : length(opts),
+                        function(x){run_calc(x, D = 6 / 365, A = 0.5, 
+                                             plots = FALSE, startpar = 5e-2)}), 
+                 opts) 
+
+# Which ones returned starting parameter value?
+vals <- which(sapply(runs, function(x) x[1, 2]) == 5e-2)
+
+# How different are the ones that didn't with other starting values?
+suppressMessages(setNames(lapply(which(!(c(1:length(opts)) %in% vals)), 
+                                 function(x){run_calc(x, D = 6 / 365, A = 0.5, 
+                                                      plots = FALSE, startpar = 5e-2)}),
+                          opts[which(!(c(1:length(opts)) %in% vals))]))
+suppressMessages(setNames(lapply(which(!(c(1:length(opts)) %in% vals)), 
+                                 function(x){run_calc(x, D = 6 / 365, A = 0.5, 
+                                                      plots = FALSE, startpar = 1e-2)}),
+                          opts[which(!(c(1:length(opts)) %in% vals))]))
+
+# How different are the ones that did with other starting values?
+suppressMessages(setNames(lapply(vals, 
+                                 function(x){run_calc(x, D = 6 / 365, A = 0.5, 
+                                                      plots = FALSE, startpar = 5e-2)}),
+                          opts[vals]))
