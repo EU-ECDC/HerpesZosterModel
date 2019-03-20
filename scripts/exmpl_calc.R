@@ -147,7 +147,10 @@ run_calc <- function(country, ...){
                            filter(sex == "T") %>%
                            filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
                            filter(time == "2006-01-01"),
-                         plot_inputs = FALSE, ...)}
+                         plot_inputs = FALSE,
+                         Lmax = dim(contact_matrix(polymod,
+                                               countries = thisCountry,
+                                               filter = ("phys_contact" > 3))$matrix)[1], ...)}
   if(thisCode == "UK"){
     vals <- example_calc(cont = contact_matrix(polymod,
                                                countries = thisCountry,
@@ -165,7 +168,10 @@ run_calc <- function(country, ...){
                            filter(sex == "T") %>%
                            filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
                            filter(time == "2006-01-01"),
-                         plot_inputs = FALSE, ...)}
+                         plot_inputs = FALSE, 
+                         Lmax = dim(contact_matrix(polymod,
+                                               countries = thisCountry,
+                                               filter = ("phys_contact" > 3))$matrix)[1], ...)}
   
   return(rbind(c("q", vals$qhat),
                c("R0", vals$R0), 
@@ -173,6 +179,8 @@ run_calc <- function(country, ...){
 }
 
 # Italy
-run_calc(country = 4, D = 6 / 365, A = 0.5, Lmax = 83, plots = FALSE, startpar = 5e-2)
+run_calc(4, D = 6 / 365, A = 0.5, plots = FALSE, startpar = 5e-2)
 # UK
-run_calc(country = 7, D = 6 / 365, A = 0.5, Lmax = 80, plots = FALSE, startpar = 5e-2)
+run_calc(7, D = 6 / 365, A = 0.5, plots = FALSE, startpar = 5e-2)
+
+lapply(1 : length(opts), function(x){run_calc(x, D = 6 / 365, A = 0.5, plots = FALSE, startpar = 5e-2)})
