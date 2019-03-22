@@ -111,7 +111,7 @@ example_calc <- function(cont = contact_matrix(polymod,
   sero <- sero[order(sero$AGE), ]
   
   # Fit FOI with constant proportionality factor in social contact hypothesis
-  res <- FOIest::contact(a = sero$AGE, y = sero$indic, rij = contact_w,
+  res <- FOIest::contact(age = sero$AGE, y = sero$indic, rij = contact_w,
                          muy = predict(demfit, type = "response"),
                          N = sum(PS), ...)
   return(res)
