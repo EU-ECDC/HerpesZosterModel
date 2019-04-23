@@ -7,7 +7,7 @@ tiff("S:/HelenJohnson/Herpes Zoster/Force of infection/Figures/overview_all.tif"
 layout(matrix(seq(1, dim(opts)[1]), nrow = 3, byrow = TRUE))
 i <- 1
 while(i < dim(opts)[1]){
-  pre_proc(i)
+  get_data(i)
   res1 <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),
               N = sum(PS), D = 6 / 365, A = 0.5, Lmax = 70, 

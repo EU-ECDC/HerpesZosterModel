@@ -7,7 +7,7 @@ library(ggplot2)
 # Checking convergence ---------------------------------------------------------
 
 check_conv <- function(i, ...){
-  pre_proc(i)
+  get_data(i)
   # Capture printed output from nlm and put into table ---------------------------
   tmp <- capture.output(res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
                                    muy = predict(demfit, type = "response"),
