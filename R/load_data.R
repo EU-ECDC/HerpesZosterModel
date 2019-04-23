@@ -178,8 +178,8 @@ get_data <- function(i){
     
     # Calculate how many zeros and ones based on seropositivy rate
     tmp <- tmp %>% 
-      mutate(zeros = round(n * mid / 100),
-             ones = n - zeros)
+      mutate(ones = round(n * mid / 100),
+             zeros = n - ones)
     
     # Create sero data set
     age_vals <- c(rep(tmp$age, tmp$zeros), rep(tmp$age, tmp$ones))
