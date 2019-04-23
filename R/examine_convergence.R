@@ -1,5 +1,5 @@
-source("https://raw.githubusercontent.com/HerpesZosterModel/master/R/load_data.R")
-source("https://raw.githubusercontent.com/HerpesZosterModel/master/R/model.R")
+source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/load_data.R")
+source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/model.R")
 
 library(stringr)
 library(ggplot2)

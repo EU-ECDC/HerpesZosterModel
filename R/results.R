@@ -1,10 +1,10 @@
-source("https://raw.githubusercontent.com/HerpesZosterModel/master/R/load_data.R")
-source("https://raw.githubusercontent.com/HerpesZosterModel/master/R/model.R")
+source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/load_data.R")
+source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/model.R")
 
 # Save plot
 tiff("S:/HelenJohnson/Herpes Zoster/Force of infection/Figures/overview_all.tif",
      width = 2000, height = 1000)
-layout(matrix(seq(1, dim(opts)[1]), nrow = 2, byrow = TRUE))
+layout(matrix(seq(1, dim(opts)[1]), nrow = 3, byrow = TRUE))
 i <- 1
 while(i < dim(opts)[1]){
   pre_proc(i)
