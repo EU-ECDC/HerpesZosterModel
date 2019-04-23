@@ -5,6 +5,7 @@ library(magrittr)
 library(data.table)
 library(socialmixr)
 library(eurostat)
+library(akima)
 
 # Load data
 ## ESEN2 Seroprevalence
@@ -141,7 +142,7 @@ get_data <- function(i){
                                       filter(time == "2003-01-01"),
                                     mat = mat)})
     RS <- as.matrix(do.call(rbind, tmp))
-    #dimnames(RS)[[1]] <- dimnames(RS)[[2]]
+    dimnames(RS)[[1]] <- dimnames(RS)[[2]]
     #contact_w <- RS
     
     # Interpolate contact matrix
