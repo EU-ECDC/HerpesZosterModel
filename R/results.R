@@ -2,11 +2,11 @@ source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/loa
 source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/model.R")
 
 # Save plot
-tiff("S:/HelenJohnson/Herpes Zoster/Force of infection/Figures/overview_all.tif",
+tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
      width = 2000, height = 1000)
 layout(matrix(seq(1, dim(opts)[1]), nrow = 3, byrow = TRUE))
 i <- 1
-while(i < dim(opts)[1]){
+while(i <= dim(opts)[1]){
   get_data(i)
   res1 <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),

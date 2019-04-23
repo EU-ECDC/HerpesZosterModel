@@ -6,6 +6,8 @@ library(data.table)
 library(socialmixr)
 library(eurostat)
 library(akima)
+library(ggplot2)
+library(gridExtra)
 
 # Load data
 ## ESEN2 Seroprevalence
@@ -227,3 +229,69 @@ get_data <- function(i){
   assign("demfit", demfit, envir = .GlobalEnv)
   assign("PS", PS, envir = .GlobalEnv)
 }
+
+# Plots of data ----------------------------------------------------------------
+
+# Load data
+countries_of_interest <- opts[, 3]
+pop_data <- get_eurostat(id = "demo_pjan")
+mort_data <- get_eurostat(id = "demo_magec")
+
+use <- countries_of_interest[countries_of_interest %in% intersect(pop_data$geo, mort_data$geo)]
+
+## Plot mortality
+plot_mort <- function(i, ...){
+  get_data(i)
+  vals <- plot(demfit)
+  ggplot(mapping = aes(x = x, y = fit), 
+         data = as.data.frame(vals[[1]][c("x", "se", "fit")])) + 
+    labs(x = "age", y = "f(age)", title = opts[i, 3]) +
+    geom_line() +
+    geom_ribbon(aes(ymin = fit - se,
+                    ymax = fit + se),
+                alpha = 0.2)  + 
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+theme_set(theme_classic())
+plot_list <- lapply(1 : length(use), plot_mort)
+lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
+                                                envir = .GlobalEnv)})
+
+tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/mortality.tif",
+     width = 800, height = 600)
+grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+while(!is.null(dev.list())) dev.off()
+
+## Plot serological data
+plot_sero <- function(i, ...){
+  get_data(i)
+  subset <- (sero$AGE > 0.5) & (sero$AGE < 80) &
+    (!is.na(sero$AGE)) & !is.na(sero$indic)
+  sero <- sero[subset, ]
+  y <- sero$indic[order(sero$AGE)]
+  a <- sero$AGE[order(sero$AGE)]
+
+  grid <- sort(unique(round(a)))
+  neg <- table(y, round(a))[1, ]
+  pos <- table(y, round(a))[2, ]
+  tot <- neg + pos
+  
+  data <- as.data.frame(cbind(grid, neg, pos, tot))
+  
+  ggplot(data = data, mapping = aes(x = grid,
+                                    y = pos/tot, size = 0.02 * tot)) +
+    geom_point(pch = 1) + 
+    labs(x = "age", y = "sero-prevalence", title = opts[i, 3])) + 
+    xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank()) +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+plot_list <- lapply(1 : length(use), plot_sero)
+lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
+                                                envir = .GlobalEnv)})
+
+tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/serology.tif",
+     width = 800, height = 600)
+grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+while(!is.null(dev.list())) dev.off()
