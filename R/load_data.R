@@ -280,9 +280,9 @@ plot_sero <- function(i, ...){
   data <- as.data.frame(cbind(grid, neg, pos, tot))
   
   ggplot(data = data, mapping = aes(x = grid,
-                                    y = pos/tot, size = 0.02 * tot)) +
+                                    y = pos / tot, size = 0.02 * tot)) +
     geom_point(pch = 1) + 
-    labs(x = "age", y = "sero-prevalence", title = opts[i, 3])) + 
+    labs(x = "age", y = "sero-prevalence", title = opts[i, 3]) + 
     xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank()) +
     theme(plot.title = element_text(hjust = 0.5))
 }
