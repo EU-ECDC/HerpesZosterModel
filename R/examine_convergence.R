@@ -12,7 +12,8 @@ check_conv <- function(i, ...){
   tmp <- capture.output(res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
                                    muy = predict(demfit, type = "response"),
                                    N = sum(PS), ..., print = 2))
-  iter_table <- function(tmp, params = 1){
+  params <- length(startpar)
+  iter_table <- function(tmp, params){
     tmp <- tolower(tmp)
     its <- which(str_detect(tmp, "iteration"))
     stp <- which(str_detect(tmp, "step"))
@@ -20,14 +21,25 @@ check_conv <- function(i, ...){
     fnc <- which(str_detect(tmp, "function"))
     grad <- which(str_detect(tmp, "gradient"))
     iteration <- seq(from = 1, to = length(its)) - 1
+    
+    get_vals <- function(input){
+      input <- input[1 : stop]
+      values <- as.numeric(sapply(str_split(string = tmp[input + 1], pattern = " "), 
+                                  function(x) x[[2]]))
+      return(values)
+    }
+    get_vals2 <- function(input){
+      input <- input[1 : stop]
+      str <- str_split(string = tmp[input + 1], pattern = " ")
+      str <- lapply(str, function(x) x[!(x %in% c("[1]", ""))])
+      values <- cbind(as.numeric(sapply(str, function(x) x[[1]])),
+                      as.numeric(sapply(str, function(x) x[[2]])))
+      return(values)
+    }
+    
     if(params == 1){
       stop <- min(c(length(stp), length(its), length(par), length(fnc), length(grad)))
-      get_vals <- function(input){
-        input <- input[1 : stop]
-        values <- as.numeric(sapply(str_split(string = tmp[input + 1], pattern = " "), 
-                                    function(x) x[[2]]))
-        return(values)
-      }
+      
       step <- get_vals(stp)
       params <- get_vals(par)
       func <- get_vals(fnc)
@@ -35,25 +47,37 @@ check_conv <- function(i, ...){
       return(list(iteration = iteration, step = step, params = params,
                   func = func, gradient = gradient))
     }
-    # Currently only able to use this with constant proportionality factor
-    #  if(params > 1){
-    #    step <- tmp[stp + 1]
-    #    params <- tmp[par + 1]
-    #    func <- tmp[fnc + 1]
-    #    gradient <- tmp[grad + 1]
-    #     TODO For more than one parameter consider something like
-    #    get_val <- function(input){
-    #      str_tmp <- str_split(string = step, pattern = "\\[")[2]
-    #      out <- str_split(string = sapply(str_tmp, function(x) x[2]), pattern = "\\] ")
-    #     index <- sapply(out, function(x) x[[1]])
-    #      value <- sapply(out, function(x) x[[2]])
-    #    }
+    if(params == 2){
+      stop <- min(c(length(stp), length(its), length(par), length(fnc), length(grad)))
+      
+      step <- get_vals2(stp)
+      params <- get_vals2(par)
+      func <- get_vals(fnc)
+      gradient <- get_vals2(grad)
+      return(list(iteration = iteration, step = step, params = params,
+                  func = func, gradient = gradient))
+    }
   }
-  return(as_tibble(cbind(iteration = iter_table(tmp)$iteration,
-                         step = iter_table(tmp)$step,
-                         params = iter_table(tmp)$params,
-                         func = iter_table(tmp)$func,
-                         gradient = iter_table(tmp)$gradient)[1 : length(which(!is.na(iter_table(tmp)$gradient))), ]))
+  if(params == 1)
+  {return(as_tibble(cbind(iteration = iter_table(tmp, params)$iteration,
+                          step = iter_table(tmp, params)$step,
+                          params = iter_table(tmp, params)$params,
+                          func = iter_table(tmp, params)$func,
+                          gradient = iter_table(tmp, params)$gradient)
+                    [1 : length(which(!is.na(iter_table(tmp, params)$gradient))), ]))
+  }
+  
+  if(params == 2)
+  {return(as_tibble(cbind(iteration = iter_table(tmp, params)$iteration,
+                          step1 = iter_table(tmp, params)$step[, 1],
+                          step2 = iter_table(tmp, params)$step[, 2],
+                          params1 = iter_table(tmp, params)$params[, 1],
+                          params2 = iter_table(tmp, params)$params[, 2],
+                          func = iter_table(tmp, params)$func,
+                          gradient1 = iter_table(tmp, params)$gradient[, 1],
+                          gradient2 = iter_table(tmp, params)$gradient[, 2])
+                    [1 : length(which(!is.na(iter_table(tmp, params)$gradient[, 1]))), ]))
+  }
 }
 
 # Example
