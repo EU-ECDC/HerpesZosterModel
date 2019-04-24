@@ -3,6 +3,7 @@ source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/mod
 
 library(stringr)
 library(ggplot2)
+library(reshape2)
 
 # Checking convergence ---------------------------------------------------------
 
@@ -12,15 +13,20 @@ check_conv <- function(i, ...){
   tmp <- capture.output(res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
                                    muy = predict(demfit, type = "response"),
                                    N = sum(PS), ..., print = 2))
-  params <- length(startpar)
+  tmp <- tolower(tmp)
+  # Determine params based on length of starting values for parameters
+  params <- length(lapply(str_split(tmp[which(str_detect(tmp, "parameter")) + 1][1], " "),
+                          function(x) x[!(x %in% c("[1]", ""))])[[1]])
+  
   iter_table <- function(tmp, params){
-    tmp <- tolower(tmp)
     its <- which(str_detect(tmp, "iteration"))
     stp <- which(str_detect(tmp, "step"))
     par <- which(str_detect(tmp, "parameter"))
     fnc <- which(str_detect(tmp, "function"))
     grad <- which(str_detect(tmp, "gradient"))
     iteration <- seq(from = 1, to = length(its)) - 1
+    
+    
     
     get_vals <- function(input){
       input <- input[1 : stop]
@@ -82,12 +88,37 @@ check_conv <- function(i, ...){
 
 # Example
 check_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
+check_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Plots of convergence for each country
 plot_nlm_print <- function(i, ...){
-  ggplot(mapping = aes(x = iteration, y = params, group = 1), data = check_conv(i, ...)) + 
+  tmp <- check_conv(i, ...)
+  if("params" %in% names(tmp)){
+    ggplot(mapping = aes(x = iteration, y = params, group = 1), 
+         data = tmp) + 
     geom_point() + 
     geom_line() +
     labs(title = opts[i, 1])
+  }
+  if("params1" %in% names(tmp)){
+    grid.arrange(
+      ggplot(mapping = aes(x = iteration, y = value, colour = variable), 
+             data = melt(tmp, id = "iteration", c("params1", "params2"))) + 
+        geom_point() + 
+        geom_line() +
+        labs(title = opts[i, 1]),
+      ggplot(mapping = aes(x = iteration, y = params1, group = 1), 
+             data = tmp[, c("iteration", "params1")]) + 
+        geom_point(colour = hcl(h = seq(15, 375, length = 3), l = 65, c = 100)[1]) + 
+        geom_line(colour = hcl(h = seq(15, 375, length = 3), l = 65, c = 100)[1]),
+      ggplot(mapping = aes(x = iteration, y = params2, group = 1), 
+             data = tmp[, c("iteration", "params2")]) + 
+        geom_point(colour = hcl(h = seq(15, 375, length = 3), l = 65, c = 100)[2]) + 
+        geom_line(colour = hcl(h = seq(15, 375, length = 3), l = 65, c = 100)[2]),
+      layout_matrix = matrix(c(1, 1, 2, 3), ncol = 2, byrow = TRUE))
+  }
 }
 
+# Example
+plot_nlm_print(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
+plot_nlm_print(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
