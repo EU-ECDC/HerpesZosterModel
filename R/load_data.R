@@ -85,7 +85,8 @@ get_data <- function(i){
   if(i < 8){
     cont <- contact_matrix(polymod,
                            countries = opts[i, 1],
-                           filter = ("phys_contact" > 3))$matrix
+                           filter = ("phys_contact" > 3),
+                           quiet = TRUE)$matrix
     sero <- data %>% # Seroprevalence (ESEN2)
       filter(COUNTRY == opts[i, 2])
     
