@@ -207,4 +207,8 @@ capt <- sapply(1 : dim(opts)[1], function(i){
                         startpar = c(vals[x, 1], vals[x, 2])),
              error = function(e) NULL)})})
 colnames(capt) <- opts[, 3]
-capt
+
+# TODO plot these
+save <- which(sapply(capt, Negate(is.null)))
+tmp <- capt[save]
+names(tmp) <- rep(colnames(capt), dim(capt)[2])[save]
