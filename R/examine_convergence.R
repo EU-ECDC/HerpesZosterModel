@@ -182,7 +182,7 @@ ggplot(data = rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80,
   geom_point() + geom_line()
 rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
 
-# Look at all
+# Look at all the R and R0 values
 capt <- lapply(1 : dim(opts)[1], function(x){
   tryCatch(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
                       prop = "constant", startpar = 0.5), 
@@ -195,4 +195,16 @@ capt <- lapply(1 : dim(opts)[1], function(x){
                       prop = "loglin", startpar = c(0.5, 0.3)), 
            error = function(e) NULL)}) # Ignore errors for now
 names(capt) <- opts[, 3]
+capt
+
+# Generate random starting parameters for age-dependent proportionality factor
+set.seed(13)
+vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
+vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
+capt <- sapply(1 : dim(opts)[1], function(i){
+  sapply(1 : dim(vals)[1], function(x){
+    tryCatch(rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", 
+                        startpar = c(vals[x, 1], vals[x, 2])),
+             error = function(e) NULL)})})
+colnames(capt) <- opts[, 3]
 capt
