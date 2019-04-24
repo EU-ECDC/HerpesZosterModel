@@ -148,6 +148,9 @@ rates_conv <- function(i, ...){
       Rvec <- NGM[1 : len, 1 : len] %*% diag(suscp[1 : len])
       return(list(R0 = max(as.double(R0vec)), R = max(as.double(Rvec))))
     })
+    return(data.frame(iteration = tmp$iteration,
+                      R0 = unlist(t(dat)[, 1]), R = unlist(t(dat)[, 2]),
+                      params = tmp$params))
   }
   if("params1" %in% names(tmp)){
     dat <- mapply(function(q1, q2){
@@ -165,9 +168,10 @@ rates_conv <- function(i, ...){
       Rvec <- NGM[1 : len, 1 : len] %*% diag(suscp[1 : len])
       return(list(R0 = max(as.double(R0vec)), R = max(as.double(Rvec))))
     }, tmp$params1, tmp$params2)
+    return(data.frame(iteration = tmp$iteration,
+                      R0 = unlist(t(dat)[, 1]), R = unlist(t(dat)[, 2]),
+                      params1 = tmp$params1, params2 = tmp$params2))
   }
-  return(data.frame(iteration = tmp$iteration,
-                    R0 = unlist(t(dat)[, 1]), R = unlist(t(dat)[, 2])))
 }
 
 # Example
@@ -177,3 +181,18 @@ ggplot(data = rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80,
        mapping = aes(x = iteration, y = R0)) + 
   geom_point() + geom_line()
 rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+
+# Look at all
+capt <- lapply(1 : dim(opts)[1], function(x){
+  tryCatch(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
+                      prop = "constant", startpar = 0.5), 
+           error = function(e) NULL)}) # Ignore errors for now
+names(capt) <- opts[, 3]
+capt
+
+capt <- lapply(1 : dim(opts)[1], function(x){
+  tryCatch(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
+                      prop = "loglin", startpar = c(0.5, 0.3)), 
+           error = function(e) NULL)}) # Ignore errors for now
+names(capt) <- opts[, 3]
+capt
