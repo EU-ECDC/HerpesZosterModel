@@ -263,6 +263,8 @@ tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/mortality.tif",
 grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
 
+use <- countries_of_interest
+
 ## Plot serological data
 plot_sero <- function(i, ...){
   get_data(i)
@@ -292,6 +294,25 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
                                                 envir = .GlobalEnv)})
 
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/serology.tif",
+     width = 800, height = 600)
+grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+while(!is.null(dev.list())) dev.off()
+
+# Adapted from https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/old_scripts/plots/plot_polymod_matrix.R
+plot_mat <- function(i, ...){
+  get_data(i)
+  data <- melt(contact_w)
+  ggplot(data = data, aes_string(x = names(data)[1], y = names(data)[2], fill = names(data)[3])) + 
+    geom_tile() + 
+    scale_fill_viridis_c(direction = - 1, option = "E", ...) +
+    labs(x = "", y = "", title = opts[i, 3]) + 
+    theme(plot.title = element_text(hjust = 0.5))
+}
+plot_list <- lapply(1 : length(use), plot_mat)
+lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
+                                                envir = .GlobalEnv)})
+
+tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/contact_matrices.tif",
      width = 800, height = 600)
 grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
