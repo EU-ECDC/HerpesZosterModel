@@ -15,18 +15,17 @@ check_conv <- function(i, ...){
                                    N = sum(PS), ..., print = 2))
   tmp <- tolower(tmp)
   # Determine params based on length of starting values for parameters
-  params <- length(lapply(str_split(tmp[which(str_detect(tmp, "parameter")) + 1][1], " "),
-                          function(x) x[!(x %in% c("[1]", ""))])[[1]])
+  no_par <- length(unlist(lapply(str_split(tmp[which(str_detect(tmp, "parameter")) + 1][1], " "),
+                          function(x) x[!(x %in% c("[1]", ""))])[[1]]))
+  no_par <- as.numeric(no_par)
   
-  iter_table <- function(tmp, params){
+  iter_table <- function(tmp, no_par){
     its <- which(str_detect(tmp, "iteration"))
     stp <- which(str_detect(tmp, "step"))
     par <- which(str_detect(tmp, "parameter"))
     fnc <- which(str_detect(tmp, "function"))
     grad <- which(str_detect(tmp, "gradient"))
     iteration <- seq(from = 1, to = length(its)) - 1
-    
-    
     
     get_vals <- function(input){
       input <- input[1 : stop]
@@ -43,7 +42,7 @@ check_conv <- function(i, ...){
       return(values)
     }
     
-    if(params == 1){
+    if(no_par == 1){
       stop <- min(c(length(stp), length(its), length(par), length(fnc), length(grad)))
       
       step <- get_vals(stp)
@@ -53,7 +52,7 @@ check_conv <- function(i, ...){
       return(list(iteration = iteration, step = step, params = params,
                   func = func, gradient = gradient))
     }
-    if(params == 2){
+    if(no_par == 2){
       stop <- min(c(length(stp), length(its), length(par), length(fnc), length(grad)))
       
       step <- get_vals2(stp)
@@ -64,25 +63,25 @@ check_conv <- function(i, ...){
                   func = func, gradient = gradient))
     }
   }
-  if(params == 1)
-  {return(as_tibble(cbind(iteration = iter_table(tmp, params)$iteration,
-                          step = iter_table(tmp, params)$step,
-                          params = iter_table(tmp, params)$params,
-                          func = iter_table(tmp, params)$func,
-                          gradient = iter_table(tmp, params)$gradient)
-                    [1 : length(which(!is.na(iter_table(tmp, params)$gradient))), ]))
+  if(no_par == 1)
+  {return(as_tibble(cbind(iteration = iter_table(tmp, no_par)$iteration,
+                          step = iter_table(tmp, no_par)$step,
+                          params = iter_table(tmp, no_par)$params,
+                          func = iter_table(tmp, no_par)$func,
+                          gradient = iter_table(tmp, no_par)$gradient)
+                    [1 : length(which(!is.na(iter_table(tmp, no_par)$gradient))), ]))
   }
   
-  if(params == 2)
-  {return(as_tibble(cbind(iteration = iter_table(tmp, params)$iteration,
-                          step1 = iter_table(tmp, params)$step[, 1],
-                          step2 = iter_table(tmp, params)$step[, 2],
-                          params1 = iter_table(tmp, params)$params[, 1],
-                          params2 = iter_table(tmp, params)$params[, 2],
-                          func = iter_table(tmp, params)$func,
-                          gradient1 = iter_table(tmp, params)$gradient[, 1],
-                          gradient2 = iter_table(tmp, params)$gradient[, 2])
-                    [1 : length(which(!is.na(iter_table(tmp, params)$gradient[, 1]))), ]))
+  if(no_par == 2)
+  {return(as_tibble(cbind(iteration = iter_table(tmp, no_par)$iteration,
+                          step1 = iter_table(tmp, no_par)$step[, 1],
+                          step2 = iter_table(tmp, no_par)$step[, 2],
+                          params1 = iter_table(tmp, no_par)$params[, 1],
+                          params2 = iter_table(tmp, no_par)$params[, 2],
+                          func = iter_table(tmp, no_par)$func,
+                          gradient1 = iter_table(tmp, no_par)$gradient[, 1],
+                          gradient2 = iter_table(tmp, no_par)$gradient[, 2])
+                    [1 : length(which(!is.na(iter_table(tmp, no_par)$gradient[, 1]))), ]))
   }
 }
 
@@ -94,11 +93,11 @@ check_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5
 plot_nlm_print <- function(i, ...){
   tmp <- check_conv(i, ...)
   if("params" %in% names(tmp)){
-    ggplot(mapping = aes(x = iteration, y = params, group = 1), 
+    grid.arrange(ggplot(mapping = aes(x = iteration, y = params, group = 1), 
          data = tmp) + 
     geom_point() + 
     geom_line() +
-    labs(title = opts[i, 1])
+    labs(title = opts[i, 1]))
   }
   if("params1" %in% names(tmp)){
     grid.arrange(
