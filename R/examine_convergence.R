@@ -121,3 +121,48 @@ plot_nlm_print <- function(i, ...){
 # Example
 plot_nlm_print(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
 plot_nlm_print(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+
+rates_conv <- function(i, ...){
+  tmp <- check_conv(i, ...)
+  # Needed for calculations
+  age <- sero$AGE
+  y <- sero$indic
+  rij <- contact_w
+  muy <- predict(demfit, type = "response")
+  N <- sum(PS)
+  muy <- muy[1 : Lmax]
+  L <- Lmax * mean(exp(- cumsum(muy)))
+  My <- exp(- cumsum(muy))
+  My <- My[1 : Lmax]
+  htab <- table(floor(age), y)
+  if("params" %in% names(tmp)){
+    dat <- sapply(tmp$params, function(qpar){
+      bij <- 365 * qpar * (rij)[1 : Lmax, 1 : Lmax]
+      R0ij <- (N / L) * D * bij[1 : Lmax, 1 : Lmax]
+      Mij <- diag(c(My[1 : Lmax]))
+      NGM <- Mij %*% R0ij
+      NGM[is.na(NGM)] <- 0 # Replace missings with zeros
+      R0vec <- eigen(NGM, symmetric = FALSE, only.values = TRUE)$values
+      suscp <- htab[, 1] / rowSums(htab)
+      len <- min(dim(NGM)[1], length(suscp))
+      Rvec <- NGM[1 : len, 1 : len] %*% diag(suscp[1 : len])
+      return(list(R0 = max(as.double(R0vec)), R = max(as.double(Rvec))))
+    })
+  }
+  if("params1" %in% names(tmp)){
+    dat <- NULL # TODO
+  }
+  return(data.frame(iteration = tmp$iteration,
+                    R0 = unlist(t(dat)[, 1]), R = unlist(t(dat)[, 2])))
+}
+
+# Example
+rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
+ggplot(data = rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, 
+                         prop = "constant", startpar = 0.5),
+       mapping = aes(x = iteration, y = R0)) + 
+  geom_point() + geom_line()
+ggplot(data = rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, 
+                         prop = "constant", startpar = 0.5),
+       mapping = aes(x = iteration, y = R)) + 
+  geom_point() + geom_line()
