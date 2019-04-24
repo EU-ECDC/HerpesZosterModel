@@ -150,7 +150,21 @@ rates_conv <- function(i, ...){
     })
   }
   if("params1" %in% names(tmp)){
-    dat <- NULL # TODO
+    dat <- mapply(function(q1, q2){
+      qpar <- c(q1, q2)
+      q.f <- function(x, y){exp(qpar[1] + qpar[2] * x)}
+      qij <- outer(c(1 : Lmax), c(1 : Lmax), q.f)
+      bij <- 365 * qij * (rij)[1 : Lmax, 1 : Lmax]
+      R0ij <- (N / L) * D * bij[1 : Lmax, 1 : Lmax]
+      Mij <- diag(c(My[1 : Lmax]))
+      NGM <- Mij %*% R0ij
+      NGM[is.na(NGM)] <- 0 # Replace missings with zeros
+      R0vec <- eigen(NGM, symmetric = FALSE, only.values = TRUE)$values
+      suscp <- htab[, 1] / rowSums(htab)
+      len <- min(dim(NGM)[1], length(suscp))
+      Rvec <- NGM[1 : len, 1 : len] %*% diag(suscp[1 : len])
+      return(list(R0 = max(as.double(R0vec)), R = max(as.double(Rvec))))
+    }, tmp$params1, tmp$params2)
   }
   return(data.frame(iteration = tmp$iteration,
                     R0 = unlist(t(dat)[, 1]), R = unlist(t(dat)[, 2])))
@@ -162,7 +176,4 @@ ggplot(data = rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80,
                          prop = "constant", startpar = 0.5),
        mapping = aes(x = iteration, y = R0)) + 
   geom_point() + geom_line()
-ggplot(data = rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, 
-                         prop = "constant", startpar = 0.5),
-       mapping = aes(x = iteration, y = R)) + 
-  geom_point() + geom_line()
+rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
