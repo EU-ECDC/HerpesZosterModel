@@ -40,6 +40,13 @@ while(i <= dim(opts)[1]){
   axis(4, at = pretty(range(c(res1$lambda, res2$lambda))))
   legend("topright", col = c(1, 4), c("Log-linear", "Constant"), lty = 1)
   title(main = opts[i, 1])
+  
+  text(20, 0.7, paste("Sum of abs diff:",
+                      sum(abs(res1$lambda[as.numeric(names(pos / tot))] - (pos / tot)))),
+       col = 4)
+  text(20, 0.6, paste("Sum of abs diff:",
+                      sum(abs(res2$lambda[as.numeric(names(pos / tot))] - (pos / tot)))))
+  
   if(i == 8){
     text(20, 0.4, "NB Serbia's contact matrix is interpolated")
   }
