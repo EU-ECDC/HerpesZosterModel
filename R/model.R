@@ -132,6 +132,8 @@ FOI <- function(age, y, rij, muy, N, D, Lmax, A, plots = FALSE, startpar,
               lambda = result.global$foi,
               R = max(as.double(result.global$Rvalues)),
               pi = result.global$sero, start = startpar, prop = prop,
+              age = age, y = y, rij = rij, muy = muy, N = N, D = D,
+              Lmax = Lmax, A = A, plots = plots, print = print,
               iterations = q.result$iterations))
 }
 
