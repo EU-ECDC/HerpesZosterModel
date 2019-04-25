@@ -16,7 +16,7 @@ check_conv <- function(i, ...){
   tmp <- tolower(tmp)
   # Determine params based on length of starting values for parameters
   no_par <- length(unlist(lapply(str_split(tmp[which(str_detect(tmp, "parameter")) + 1][1], " "),
-                          function(x) x[!(x %in% c("[1]", ""))])[[1]]))
+                                 function(x) x[!(x %in% c("[1]", ""))])[[1]]))
   no_par <- as.numeric(no_par)
   
   iter_table <- function(tmp, no_par){
@@ -94,10 +94,10 @@ plot_nlm_print <- function(i, ...){
   tmp <- check_conv(i, ...)
   if("params" %in% names(tmp)){
     grid.arrange(ggplot(mapping = aes(x = iteration, y = params, group = 1), 
-         data = tmp) + 
-    geom_point() + 
-    geom_line() +
-    labs(title = opts[i, 1]))
+                        data = tmp) + 
+                   geom_point() + 
+                   geom_line() +
+                   labs(title = opts[i, 1]))
   }
   if("params1" %in% names(tmp)){
     grid.arrange(
@@ -204,32 +204,27 @@ vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
 vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
 capt <- sapply(1 : dim(opts)[1], function(i){
   sapply(1 : dim(vals)[1], function(x){
-#    tryCatch(rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", 
-#                        startpar = c(vals[x, 1], vals[x, 2])),
-#             error = function(e) NULL)})})
-  tryCatch(cbind(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
-                            prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])),
-                 id = rep(opts[x, 3], 
-                          dim(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70,
-                                         prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])))[1])),
-           error = function(e) NULL)})}) # Ignore errors for now
+    #    tryCatch(rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", 
+    #                        startpar = c(vals[x, 1], vals[x, 2])),
+    #             error = function(e) NULL)})})
+    tryCatch(cbind(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
+                              prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])),
+                   id = rep(opts[x, 3], 
+                            dim(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70,
+                                           prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])))[1])),
+             error = function(e) NULL)})}) # Ignore errors for now
 names(capt) <- rep(1 : (length(capt) / dim(opts)[1]),
                    times = dim(opts)[1])
+colnames(capt) <- opts[, 3]
 capt
 
 # Plot in progress
 save <- which(sapply(capt, Negate(is.null)))
 tmp <- capt[save]
 # Rework data into a format that is useful
-dat <- melt(tmp) %>%
-  filter(variable != "iteration") %>% # Remove iteration, we will add it again manually later
-  mutate(run = as.integer(factor(L1)))
+dat <- bind_rows(capt, .id = "column_label")
 
-# Something is broken here
-qplot(dat$run)
-
-if(FALSE){ggplot(data = dat,
-       mapping = aes(x = iteration, y = value, 
-                     group = run,
-                     colour = variable)) +
-  geom_line() + facet_grid(variable ~ id, scales = "free")}
+ggplot(data = dat,
+       mapping = aes(x = iteration, y = R0, 
+                     group = column_label)) +
+  geom_line() + facet_wrap(. ~ id, scales = "free")
