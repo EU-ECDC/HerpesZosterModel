@@ -4,6 +4,9 @@ source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/mod
 library(stringr)
 library(ggplot2)
 library(reshape2)
+library(pbapply)
+library(beepr)
+library(gridExtra)
 
 # Checking convergence ---------------------------------------------------------
 
@@ -201,12 +204,10 @@ capt
 # Generate random starting parameters for age-dependent proportionality factor
 set.seed(13)
 vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
+vals <- rbind(vals, c(0.2, 0.1))
 vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
 capt <- sapply(1 : dim(opts)[1], function(i){
   sapply(1 : dim(vals)[1], function(x){
-    #    tryCatch(rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", 
-    #                        startpar = c(vals[x, 1], vals[x, 2])),
-    #             error = function(e) NULL)})})
     tryCatch(cbind(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
                               prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])),
                    id = rep(opts[x, 3], 
@@ -218,9 +219,6 @@ names(capt) <- rep(1 : (length(capt) / dim(opts)[1]),
 colnames(capt) <- opts[, 3]
 capt
 
-# Plot in progress
-save <- which(sapply(capt, Negate(is.null)))
-tmp <- capt[save]
 # Rework data into a format that is useful
 dat <- bind_rows(capt, .id = "column_label")
 
@@ -228,3 +226,101 @@ ggplot(data = dat,
        mapping = aes(x = iteration, y = R0, 
                      group = column_label)) +
   geom_line() + facet_wrap(. ~ id, scales = "free")
+
+# Compare inputs and outputs (starting values and estimates)
+run_model <- function(i, ...){
+  res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
+             muy = predict(demfit, type = "response"),
+             N = sum(PS), ...)
+  if(length(res$inputs$start) == 1){
+    out <- list(start = res$inputs$start,
+                est = res$qhat,
+                est_R0 = res$R0,
+                est_R = res$R,
+                id = opts[i, 3])
+  }
+  if(length(res$inputs$start) == 2){
+    out <- list(start_gamma1 = res$inputs$start[1],
+                start_gamma2 = res$inputs$start[2], 
+                est_gamma1 = res$qhat[1],
+                est_gamma2 = res$qhat[2],
+                est_R0 = res$R0,
+                est_R = res$R,
+                id = opts[i, 3])
+  }
+  return(out)
+}
+# Example
+capt <- lapply(1 : dim(vals)[1], function(x){
+  tryCatch(t(run_model(1, D = 6 / 365, A = 0.5, Lmax = 70, 
+                       startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
+           error = function(e) NULL)}) # Ignore errors
+nam <- colnames(capt[[1]])
+capt <- matrix(unlist(capt), ncol = 7, byrow = TRUE)
+colnames(capt) <- nam
+capt <- as.data.frame(capt)
+capt[, - 7] %<>% lapply(function(x) as.numeric(levels(x))[x])
+
+tmp <- data.frame(start = c(capt[, 1], capt[, 2]),
+                  est = c(capt[, 3], capt[, 4]),
+                  par = rep(c("gamma1", "gamma2"), c(dim(capt)[1], dim(capt)[1])),
+                  R0 = c(capt[, 5], capt[, 5]),
+                  R = c(capt[, 6], capt[, 6]),
+                  id = c(capt[, 7], capt[, 7]))
+
+ggplot() +
+  geom_count(data = tmp,
+             mapping = aes(x = start, y = est, colour = par), alpha = 0.3) +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(y = "Estimated value", x = "Starting value")
+
+ggplot() +
+  geom_histogram(data = tmp,
+                 mapping = aes(x = R0))
+ggplot() +
+  geom_histogram(data = tmp,
+                 mapping = aes(x = R))
+
+# All countries
+set.seed(13)
+vals <- t(combn(runif(n = 8, min = 0, max = 1), 2))
+vals <- rbind(vals, c(0.2, 0.1))
+vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
+
+# Remove "pb" if progress bar not desired
+{capt <- pbsapply(1 : dim(opts)[1], function(i){lapply(1 : dim(vals)[1], function(x){
+  tryCatch(t(run_model(i, D = 6 / 365, A = 0.5, Lmax = 70, 
+                       startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
+           error = function(e) NULL)})}) # Ignore errors
+# Uncomment below if you want the script to announce when done
+#beep(sound = 4, expr = NULL)
+}
+nam <- colnames(capt[[1]])
+capt <- matrix(unlist(capt), ncol = 7, byrow = TRUE)
+colnames(capt) <- nam
+capt <- as.data.frame(capt)
+capt[, - 7] %<>% lapply(function(x) as.numeric(levels(x))[x])
+
+dat <- data.frame(start = c(capt[, 1], capt[, 2]),
+                  est = c(capt[, 3], capt[, 4]),
+                  par = rep(c("gamma1", "gamma2"), c(dim(capt)[1], dim(capt)[1])),
+                  R0 = c(capt[, 5], capt[, 5]),
+                  R = c(capt[, 6], capt[, 6]),
+                  id = levels(capt[, 7])[c(capt[, 7], capt[, 7])])
+
+(fig <- ggplot() +
+  geom_count(data = dat,
+             mapping = aes(x = start, y = est, colour = par), alpha = 0.3) +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(y = "Estimated value", x = "Starting value") +
+  facet_grid(id ~ par, scales = "free_y"))
+
+tiff("P:/temp.tif",
+     width = 800, height = 1000)
+grid.arrange(fig,
+             ggplot() +
+               geom_count(data = dat,
+                          mapping = aes(x = start, y = est, colour = par), alpha = 0.3) +
+               geom_abline(intercept = 0, slope = 1) +
+               labs(y = "Estimated value", x = "Starting value"), ncol = 2)
+dev.off()
