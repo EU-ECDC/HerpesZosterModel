@@ -124,16 +124,16 @@ FOI <- function(age, y, rij, muy, N, D, Lmax, A, plots = FALSE, startpar,
                   startpar, print.level = print)
   result.global <- qproc(age = age, y = y, q = q.result$estimate, rij = rij,
                          Lmax = Lmax, N = N, D = D)
-  # if(all.equal(q.result$estimate, startpar)){warning("Optimisation did not start")}
+  #if(isTRUE(all.equal(q.result$estimate, startpar))){warning("Optimisation did not start")}
   return(list(qhat = q.result$estimate, deviance = q.result$minimum, 
               aic = q.result$minimum + 2,
               bic = q.result$minimum + log(length(y)), bij = result.global$bij,
               R0 = max(as.double(result.global$eivalues)), 
               lambda = result.global$foi,
               R = max(as.double(result.global$Rvalues)),
-              pi = result.global$sero, start = startpar, prop = prop,
+              pi = result.global$sero, inputs = list(start = startpar, prop = prop,
               age = age, y = y, rij = rij, muy = muy, N = N, D = D,
-              Lmax = Lmax, A = A, plots = plots, print = print,
+              Lmax = Lmax, A = A, plots = plots, print = print),
               iterations = q.result$iterations))
 }
 
