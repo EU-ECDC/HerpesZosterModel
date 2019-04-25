@@ -86,8 +86,8 @@ check_conv <- function(i, ...){
 }
 
 # Example
-check_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
-check_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+check_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
+check_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Plots of convergence for each country
 plot_nlm_print <- function(i, ...){
@@ -119,12 +119,12 @@ plot_nlm_print <- function(i, ...){
 }
 
 # Example
-plot_nlm_print(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
-plot_nlm_print(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+plot_nlm_print(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
+plot_nlm_print(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
 
 rates_conv <- function(i, ...){
   tmp <- check_conv(i, ...)
-  # Needed for calculations
+  # Calculations of rates
   age <- sero$AGE
   y <- sero$indic
   rij <- contact_w
@@ -173,14 +173,15 @@ rates_conv <- function(i, ...){
                       params1 = tmp$params1, params2 = tmp$params2))
   }
 }
+# TODO Find out why this only works when Lmax already defined in the global environment
 
 # Example
-rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
-ggplot(data = rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, 
+rates_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
+ggplot(data = rates_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, 
                          prop = "constant", startpar = 0.5),
        mapping = aes(x = iteration, y = R0)) + 
   geom_point() + geom_line()
-rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+rates_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Look at all the R and R0 values
 capt <- lapply(1 : dim(opts)[1], function(x){
@@ -203,12 +204,32 @@ vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
 vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
 capt <- sapply(1 : dim(opts)[1], function(i){
   sapply(1 : dim(vals)[1], function(x){
-    tryCatch(rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", 
-                        startpar = c(vals[x, 1], vals[x, 2])),
-             error = function(e) NULL)})})
-colnames(capt) <- opts[, 3]
+#    tryCatch(rates_conv(i, D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", 
+#                        startpar = c(vals[x, 1], vals[x, 2])),
+#             error = function(e) NULL)})})
+  tryCatch(cbind(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
+                            prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])),
+                 id = rep(opts[x, 3], 
+                          dim(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70,
+                                         prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])))[1])),
+           error = function(e) NULL)})}) # Ignore errors for now
+names(capt) <- rep(1 : (length(capt) / dim(opts)[1]),
+                   times = dim(opts)[1])
+capt
 
-# TODO plot these
+# Plot in progress
 save <- which(sapply(capt, Negate(is.null)))
 tmp <- capt[save]
-names(tmp) <- rep(colnames(capt), dim(capt)[2])[save]
+# Rework data into a format that is useful
+dat <- melt(tmp) %>%
+  filter(variable != "iteration") %>% # Remove iteration, we will add it again manually later
+  mutate(run = as.integer(factor(L1)))
+
+# Something is broken here
+qplot(dat$run)
+
+if(FALSE){ggplot(data = dat,
+       mapping = aes(x = iteration, y = value, 
+                     group = run,
+                     colour = variable)) +
+  geom_line() + facet_grid(variable ~ id, scales = "free")}
