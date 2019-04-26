@@ -11,22 +11,22 @@ library(gridExtra)
 
 # Load data
 ## ESEN2 Seroprevalence
-data <- read.table("S:/HelenJohnson/Herpes Zoster/Force of infection/esen2vzv.csv",
+data1 <- read.table("S:/HelenJohnson/Herpes Zoster/Force of infection/esen2vzv.csv",
                    sep = ",", header = TRUE, stringsAsFactors = FALSE)
 
-data <- data %>%
+data1 <- data1 %>%
   mutate(indic = ifelse(STDRES != "NEG", 1, 0))
 # Make age numeric variable
-data[which(data$AGE == "60+"), ]$AGE <- 60
-data$AGE <- sapply(strsplit(data$AGE, split = "-"),
+data1[which(data1$AGE == "60+"), ]$AGE <- 60
+data1$AGE <- sapply(strsplit(data1$AGE, split = "-"),
                    function(x) mean(as.numeric(x)))
 
 # Replace age values
 age_rpl <- data.frame(AGE = c(0, seq(from = 1, to = 20, by = 1)),
                       to = c((1 + 0.5)/2, seq(from = 1.5, to = 20.5, by = 1)))
-setDT(data)
+setDT(data1)
 setDT(age_rpl)
-data <- data[age_rpl, on = c("AGE"), AGE := to]
+data1 <- data1[age_rpl, on = c("AGE"), AGE := to]
 
 # Current options based on availability of data
 opts <- cbind(c("Belgium", "Finland", "Germany", "Italy", "Luxembourg", 
@@ -87,7 +87,7 @@ get_data <- function(i){
                            countries = opts[i, 1],
                            filter = ("phys_contact" > 3),
                            quiet = TRUE)$matrix
-    sero <- data %>% # Seroprevalence (ESEN2)
+    sero <- data1 %>% # Seroprevalence (ESEN2)
       filter(COUNTRY == opts[i, 2])
     
     # Weigh contact matrix by population sizes to obtain c(i, j) from m(i, j)
@@ -245,7 +245,7 @@ plot_mort <- function(i, ...){
   get_data(i)
   vals <- plot(demfit)
   ggplot(mapping = aes(x = x, y = fit), 
-         data = as.data.frame(vals[[1]][c("x", "se", "fit")])) + 
+         data1 = as.data.frame(vals[[1]][c("x", "se", "fit")])) + 
     labs(x = "age", y = "f(age)", title = opts[i, 3]) +
     geom_line() +
     geom_ribbon(aes(ymin = fit - se,
@@ -280,9 +280,9 @@ plot_sero <- function(i, ...){
   pos <- table(y, round(a))[2, ]
   tot <- neg + pos
   
-  data <- as.data.frame(cbind(grid, neg, pos, tot))
+  data1 <- as.data.frame(cbind(grid, neg, pos, tot))
   
-  ggplot(data = data, mapping = aes(x = grid,
+  ggplot(data1 = data1, mapping = aes(x = grid,
                                     y = pos / tot, size = 0.02 * tot)) +
     geom_point(pch = 1) + 
     labs(x = "age", y = "sero-prevalence", title = opts[i, 3]) + 
@@ -302,8 +302,8 @@ while(!is.null(dev.list())) dev.off()
 # Adapted from https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/old_scripts/plots/plot_polymod_matrix.R
 plot_mat <- function(i, ...){
   get_data(i)
-  data <- melt(contact_w)
-  ggplot(data = data, aes_string(x = names(data)[1], y = names(data)[2], fill = names(data)[3])) + 
+  data1 <- melt(contact_w)
+  ggplot(data1 = data1, aes_string(x = names(data1)[1], y = names(data1)[2], fill = names(data1)[3])) + 
     geom_tile() + 
     scale_fill_viridis_c(direction = - 1, option = "E", ...) +
     labs(x = "", y = "", title = opts[i, 3]) + 
