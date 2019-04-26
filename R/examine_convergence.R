@@ -10,12 +10,12 @@ library(gridExtra)
 
 # Checking convergence ---------------------------------------------------------
 
-check_conv <- function(i, ...){
-  get_data(i)
+check_conv <- function(code, ...){
+  get_data(code)
   # Capture printed output from nlm and put into table ---------------------------
   tmp <- capture.output(res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
                                    muy = predict(demfit, type = "response"),
-                                   N = sum(PS), ..., print = 2))
+                                   N = sum(popSize), ..., print = 2))
   tmp <- tolower(tmp)
   # Determine params based on length of starting values for parameters
   no_par <- length(unlist(lapply(str_split(tmp[which(str_detect(tmp, "parameter")) + 1][1], " "),
@@ -89,18 +89,18 @@ check_conv <- function(i, ...){
 }
 
 # Example
-check_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
-check_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Plots of convergence for each country
-plot_conv <- function(i, ...){
-  tmp <- check_conv(i, ...)
+plot_conv <- function(code, ...){
+  tmp <- check_conv(code, ...)
   if("params" %in% names(tmp)){
     grid.arrange(ggplot(mapping = aes(x = iteration, y = params, group = 1), 
                         data = tmp) + 
                    geom_point() + 
                    geom_line() +
-                   labs(title = opts[i, 1]))
+                   labs(title = code))
   }
   if("params1" %in% names(tmp)){
     grid.arrange(
@@ -108,7 +108,7 @@ plot_conv <- function(i, ...){
              data = melt(tmp, id = "iteration", c("params1", "params2"))) + 
         geom_point() + 
         geom_line() +
-        labs(title = opts[i, 1]),
+        labs(title = code),
       ggplot(mapping = aes(x = iteration, y = params1, group = 1), 
              data = tmp[, c("iteration", "params1")]) + 
         geom_point(colour = hcl(h = seq(15, 375, length = 3), l = 65, c = 100)[1]) + 
@@ -122,17 +122,17 @@ plot_conv <- function(i, ...){
 }
 
 # Example
-plot_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
-plot_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
-rates_conv <- function(i, ...){
-  tmp <- check_conv(i, ...)
+rates_conv <- function(code, ...){
+  tmp <- check_conv(code, ...)
   # Calculations of rates
   age <- sero$AGE
   y <- sero$indic
   rij <- contact_w
   muy <- predict(demfit, type = "response")
-  N <- sum(PS)
+  N <- sum(popSize)
   muy <- muy[1 : Lmax]
   L <- Lmax * mean(exp(- cumsum(muy)))
   My <- exp(- cumsum(muy))
@@ -179,12 +179,12 @@ rates_conv <- function(i, ...){
 # TODO Find out why this only works when Lmax already defined in the global environment
 
 # Example
-rates_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
-ggplot(data = rates_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, 
+rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+ggplot(data = rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, 
                          prop = "constant", startpar = 0.5),
        mapping = aes(x = iteration, y = R0)) + 
   geom_point() + geom_line()
-rates_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Look at all the R and R0 values
 capt <- lapply(1 : dim(opts)[1], function(x){
@@ -207,7 +207,7 @@ set.seed(13)
 vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
 vals <- rbind(vals, c(0.2, 0.1))
 vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
-capt <- sapply(1 : dim(opts)[1], function(i){
+capt <- sapply(1 : dim(opts)[1], function(code){
   sapply(1 : dim(vals)[1], function(x){
     tryCatch(cbind(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
                               prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])),
@@ -229,16 +229,16 @@ ggplot(data = dat,
   geom_line() + facet_wrap(. ~ id, scales = "free")
 
 # Compare inputs and outputs (starting values and estimates)
-run_model <- function(i, ...){
+run_model <- function(code, ...){
   res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
              muy = predict(demfit, type = "response"),
-             N = sum(PS), ...)
+             N = sum(popSize), ...)
   if(length(res$inputs$start) == 1){
     out <- list(start = res$inputs$start,
                 est = res$qhat,
                 est_R0 = res$R0,
                 est_R = res$R,
-                id = opts[i, 3])
+                id = code)
   }
   if(length(res$inputs$start) == 2){
     out <- list(start_gamma1 = res$inputs$start[1],
@@ -247,13 +247,13 @@ run_model <- function(i, ...){
                 est_gamma2 = res$qhat[2],
                 est_R0 = res$R0,
                 est_R = res$R,
-                id = opts[i, 3])
+                id = code)
   }
   return(out)
 }
 # Example
 capt <- lapply(1 : dim(vals)[1], function(x){
-  tryCatch(t(run_model(i = 1, D = 6 / 365, A = 0.5, Lmax = 70, 
+  tryCatch(t(run_model(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, 
                        startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
            error = function(e) NULL)}) # Ignore errors
 nam <- colnames(capt[[1]])
@@ -289,8 +289,8 @@ vals <- rbind(vals, c(0.2, 0.1))
 vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
 
 # Remove "pb" if progress bar not desired
-{capt <- pbsapply(1 : dim(opts)[1], function(i){lapply(1 : dim(vals)[1], function(x){
-  tryCatch(t(run_model(i, D = 6 / 365, A = 0.5, Lmax = 70, 
+{capt <- pbsapply(1 : dim(opts)[1], function(code){lapply(1 : dim(vals)[1], function(x){
+  tryCatch(t(run_model(code, D = 6 / 365, A = 0.5, Lmax = 70, 
                        startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
            error = function(e) NULL)})}) # Ignore errors
 # Uncomment below if you want the script to announce when done

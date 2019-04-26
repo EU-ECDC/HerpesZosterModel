@@ -4,17 +4,18 @@ source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/mod
 # Save plot
 tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
      width = 2000, height = 1000)
-layout(matrix(seq(1, dim(opts)[1]), nrow = 3, byrow = TRUE))
+layout(matrix(seq(1, length(use), nrow = 3, byrow = TRUE))
 i <- 1
-while(i <= dim(opts)[1]){
-  get_data(i)
+while(i <= length(use)){
+  code <- use[i]
+  get_data(code)
   res1 <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),
-              N = sum(PS), D = 6 / 365, A = 0.5, Lmax = 70, 
+              N = sum(popSize), D = 6 / 365, A = 0.5, Lmax = 70, 
               prop = "constant", startpar = 0.5)
   res2 <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),
-              N = sum(PS), D = 6 / 365, A = 0.5, Lmax = 70, 
+              N = sum(popSize), D = 6 / 365, A = 0.5, Lmax = 70, 
               prop = "loglin", startpar = c(0.5, 0.3))
   
   # Plot results
@@ -39,7 +40,7 @@ while(i <= dim(opts)[1]){
   # Add right axis, legend, and title
   axis(4, at = pretty(range(c(res1$lambda, res2$lambda))))
   legend("topright", col = c(1, 4), c("Log-linear", "Constant"), lty = 1)
-  title(main = opts[i, 1])
+  title(main = code)
   
   text(20, 0.7, paste("Sum of abs diff:",
                       sum(abs(res1$lambda[as.numeric(names(pos / tot))] - (pos / tot)))),
@@ -47,7 +48,7 @@ while(i <= dim(opts)[1]){
   text(20, 0.6, paste("Sum of abs diff:",
                       sum(abs(res2$lambda[as.numeric(names(pos / tot))] - (pos / tot)))))
   
-  if(i == 8){
+  if(code == "RS"){
     text(20, 0.4, "NB Serbia's contact matrix is interpolated")
   }
   i <- i + 1
