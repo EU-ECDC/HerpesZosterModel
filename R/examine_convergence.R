@@ -93,7 +93,7 @@ check_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar =
 check_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Plots of convergence for each country
-plot_nlm_print <- function(i, ...){
+plot_conv <- function(i, ...){
   tmp <- check_conv(i, ...)
   if("params" %in% names(tmp)){
     grid.arrange(ggplot(mapping = aes(x = iteration, y = params, group = 1), 
@@ -122,8 +122,8 @@ plot_nlm_print <- function(i, ...){
 }
 
 # Example
-plot_nlm_print(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
-plot_nlm_print(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
+plot_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "constant", startpar = 0.5)
+plot_conv(i = 1, D = 6 / 365, A = 0.5, Lmax = 80, prop = "loglin", startpar = c(0.5, 0.3))
 
 rates_conv <- function(i, ...){
   tmp <- check_conv(i, ...)
@@ -201,6 +201,7 @@ capt <- lapply(1 : dim(opts)[1], function(x){
 names(capt) <- opts[, 3]
 capt
 
+# Examining various starting parameters ----------------------------------------
 # Generate random starting parameters for age-dependent proportionality factor
 set.seed(13)
 vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
@@ -252,7 +253,7 @@ run_model <- function(i, ...){
 }
 # Example
 capt <- lapply(1 : dim(vals)[1], function(x){
-  tryCatch(t(run_model(1, D = 6 / 365, A = 0.5, Lmax = 70, 
+  tryCatch(t(run_model(i = 1, D = 6 / 365, A = 0.5, Lmax = 70, 
                        startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
            error = function(e) NULL)}) # Ignore errors
 nam <- colnames(capt[[1]])
@@ -324,3 +325,12 @@ grid.arrange(fig,
                geom_abline(intercept = 0, slope = 1) +
                labs(y = "Estimated value", x = "Starting value"), ncol = 2)
 dev.off()
+
+grid.arrange(ggplot(data = dat,
+                    mapping = aes(x = log(R0), fill = id)) +
+               geom_histogram() + scale_fill_viridis_d(direction = - 1) +
+               theme_linedraw(),
+             ggplot(data = dat,
+                    mapping = aes(x = log(R), fill = id)) +
+               geom_histogram() + scale_fill_viridis_d(direction = - 1) +
+               theme_linedraw())
