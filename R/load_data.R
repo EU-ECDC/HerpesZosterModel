@@ -1,32 +1,41 @@
+# Clear workspace
+rm(list=ls())
+
 # Required packages
-library(dplyr)
+library(tidyverse)
 library(readxl)
 library(magrittr)
 library(data.table)
 library(socialmixr)
 library(eurostat)
 library(akima)
-library(ggplot2)
 library(gridExtra)
 
 # Load data
 ## ESEN2 Seroprevalence
-data1 <- read.table("S:/HelenJohnson/Herpes Zoster/Force of infection/esen2vzv.csv",
-                   sep = ",", header = TRUE, stringsAsFactors = FALSE)
+data1 <- read_csv("S:/HelenJohnson/Herpes Zoster/Force of infection/esen2vzv.csv",col_names = TRUE)
 
+# Create indicator variable for seroprevalence. Code 'EQI' as positive
 data1 <- data1 %>%
   mutate(indic = ifelse(STDRES != "NEG", 1, 0))
-# Make age numeric variable
+  
+## AGE
+# Code all over 60 as 60 year olds
 data1[which(data1$AGE == "60+"), ]$AGE <- 60
+
+# In the case of age ranges, choose mid-point
 data1$AGE <- sapply(strsplit(data1$AGE, split = "-"),
                    function(x) mean(as.numeric(x)))
 
 # Replace age values
-age_rpl <- data.frame(AGE = c(0, seq(from = 1, to = 20, by = 1)),
-                      to = c((1 + 0.5)/2, seq(from = 1.5, to = 20.5, by = 1)))
-setDT(data1)
-setDT(age_rpl)
-data1 <- data1[age_rpl, on = c("AGE"), AGE := to]
+#age_rpl <- data.frame(AGE = c(0, seq(from = 1, to = 20, by = 1)),
+                      #to = c((1 + 0.5)/2, seq(from = 1.5, to = 20.5, by = 1)))
+#setDT(data1)
+#setDT(age_rpl)
+#data1 <- data1[age_rpl, on = c("AGE"), AGE := to]
+
+# Assume mid point of year of age
+data1 <- data1 %>% mutate(AGE = AGE + 0.5)
 
 # Current options based on availability of data
 opts <- cbind(c("Belgium", "Finland", "Germany", "Italy", "Luxembourg", 
@@ -36,62 +45,74 @@ opts <- cbind(c("Belgium", "Finland", "Germany", "Italy", "Luxembourg",
               c("BE", "FI", "DE", "IT", "LU", "NL", "UK", "RS", "SI"),
               c("BE", "FI", "DE", "IT", "LU", "NL", "UK", "RS", "SI"))
 
+# EEA <- c("AT","BE","BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "EL", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "RO", "SK", "SI", "ES", "SC", "SE", "UK") 
+# countryList <- c("Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Latvia", "Liechtenstein", "Lithuania","Luxembourg", "Malta", "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Scotland", "Sweden", "United Kingdom" )
+# countries <- tibble(code=EEA, name=countryList)
+
+
 # Get and assign the data needed -----------------------------------------------
 get_data <- function(i){
   if(i > dim(opts)[1]){stop("Invalid value")}
-  # Remove objects
+  # Clear previous values
   remove(sero, envir = .GlobalEnv)
   remove(contact_w, envir = .GlobalEnv)
   remove(demfit, envir = .GlobalEnv)
-  remove(PS, envir = .GlobalEnv)
+  remove(popSize, envir = .GlobalEnv)
   
   # Population data
   pop <- get_eurostat(id = "demo_pjan") %>% # Population size
-    filter(geo == opts[i, 3]) %>%
-    filter(sex == "T") %>%
-    filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
-    filter(time == "2003-01-01")
+		filter(geo == opts[i, 3]) %>%
+		filter(sex == "T") %>% # Total population (males & females)
+		filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>% # Include only population values by age
+		filter(time == "2003-01-01")  # 
+	
   # Mortality data
   mort <- get_eurostat(id = "demo_magec") %>% # Number of deaths
-    filter(geo == opts[i, 4]) %>%
-    filter(sex == "T") %>%
-    filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
-    filter(time == "2003-01-01")
+		filter(geo == opts[i, 4]) %>%
+		filter(sex == "T") %>%   # Total number of deaths (males & females)
+		filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
+		filter(time == "2003-01-01")
   
   # Re-order population data by age
   popAge <- droplevels(pop$age)
   levels(popAge)[length(levels(popAge))] <- "0.5"
   popAge <- as.numeric(gsub("[A-z]", "", popAge))
   
-  PS <- pop %>% mutate(popAge = popAge) %>%
+  popSize <- pop %>% mutate(popAge = popAge) %>%
     arrange(popAge) %>% 
     mutate(age = factor(age, age)) %>%
     select(values)
-  PS <- unlist(PS)
+  popSize <- unlist(popSize)
+  
   # Re-order mortality data by age
   mortAge <- droplevels(mort$age)
   levels(mortAge)[length(levels(mortAge))] <- "0.5"
   mortAge <- as.numeric(gsub("[A-z]", "", mortAge))
-  ND <- mort %>% mutate(mortAge = mortAge) %>%
+  
+  nDeaths <- mort %>% mutate(mortAge = mortAge) %>%
     arrange(mortAge) %>% 
     mutate(age = factor(age, age)) %>%
     select(values)
-  ND <- unlist(ND)
-  ND <- ND[c(1 : length(PS))]
-  # Fit mortality model
-  demfit <- mgcv::gam(ND ~ s(sort(mortAge)[c(1 : length(PS))]), offset = log(PS),
+  nDeaths <- unlist(nDeaths)
+  nDeaths <- nDeaths[c(1 : length(popSize))]
+  
+  # Fit mortality model 
+  demfit <- mgcv::gam(nDeaths ~ s(sort(mortAge)[c(1 : length(popSize))]), offset = log(popSize),
                       family = "poisson", link = "log")
   
-  if(i < 8){
+  
+  if(i < 8){ # For countries included in POLYMOD
+    # Obtain contact matrix from POLYMOD 
     cont <- contact_matrix(polymod,
                            countries = opts[i, 1],
                            filter = ("phys_contact" > 3),
                            quiet = TRUE)$matrix
-    sero <- data1 %>% # Seroprevalence (ESEN2)
-      filter(COUNTRY == opts[i, 2])
-    
-    # Weigh contact matrix by population sizes to obtain c(i, j) from m(i, j)
-    pop_weights <- data.frame(age = popAge, size = PS)[1 : dim(cont)[1], ]
+	
+	# Select seroprevalence data
+    sero <- data1 %>% filter(COUNTRY == opts[i, 2]) # Seroprevalence (ESEN2)
+         
+    # Weight contact matrix by population sizes to obtain c(i, j) from m(i, j)
+    pop_weights <- data.frame(age = popAge, size = popSize)[1 : dim(cont)[1], ]
     weigh <- function(x){
       cont[x, ] / pop_weights[x, 2]
     }
@@ -99,6 +120,7 @@ get_data <- function(i){
     contact_w <- do.call(rbind, tmp)
     dimnames(contact_w) <- dimnames(cont)
   }
+  
   if(i == 8){
     # Create Serbia data based on Table 1 from Medić et al 2018
     # Epidemiol Infect 146, 1593–1601
@@ -228,7 +250,7 @@ get_data <- function(i){
   assign("sero", sero, envir = .GlobalEnv)
   assign("contact_w", contact_w, envir = .GlobalEnv)
   assign("demfit", demfit, envir = .GlobalEnv)
-  assign("PS", PS, envir = .GlobalEnv)
+  assign("popSize", popSize, envir = .GlobalEnv)
 }
 
 # Plots of data ----------------------------------------------------------------
