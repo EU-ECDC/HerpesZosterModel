@@ -6,7 +6,7 @@ The suggested order of running these scripts is
   1. [examine_convergence.R](examine_convergence.R)
 3. [results.R](results.R)
 
-The script for loading data [1](load_data.R) creates the inputs required for use in the force of infection calculation. The calculation itself can be found in the script called model [2](model.R). Convergence can be examined [2a](examine_convergence.R) (currently only possible for the constant force of infection). Results from running the model after loading the data are also available [3](results.R).
+The script for loading data [1](load_data.R) creates the inputs required for use in the force of infection calculation. The calculation itself can be found in the script called model [2](model.R). Convergence can be examined [2a](examine_convergence.R). Results from running the model after loading the data are also available [3](results.R).
 
 ## load_data.R
 The function `get_data` retrieves and attaches to the global envioronment 
