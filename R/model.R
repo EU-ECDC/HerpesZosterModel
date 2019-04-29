@@ -2,14 +2,14 @@
 # available from
 # http://www.simid.be/modeling-infectious-disease-parameters-based-on-serological-and-social-contact-data/
 
-FOI <- function(age, y, rij, muy, N, D, Lmax, A, startpar,
+FOI <- function(age, y, rij, muy, N, Dur, Lmax, A, startpar,
                 prop = "constant", print = 0){
   muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
   My <- exp(- cumsum(muy)) # Type I mortality
   L <- Lmax * mean(My) # Life expectancy
   My <- My[1 : Lmax] # Ensure no longer than life expectancy
   htab <- table(floor(age), y) # Table with seroprevalence for each single year of age
-  qproc <- function(age, y, qpar, rij, Lmax, N, D, prop_fac = prop){
+  qproc <- function(age, y, qpar, rij, Lmax, N, Dur, prop_fac = prop){
     # qpar is the parameter we optimise wrt, its starting value is startpar
     if(Lmax > 100){return("Please specify Lmax<100")} 
     # Lmax restriction is inherited from original code
@@ -67,7 +67,7 @@ FOI <- function(age, y, rij, muy, N, D, Lmax, A, startpar,
     while((tol > 1e-10) & (it < 2000)){
       # Social contact FOI
       # lambda(a) is calculated based on beta(a, a') and I(a', t)
-      foii <- (N / L) * D * bij %*%
+      foii <- (N / L) * Dur * bij %*%
         (as.matrix(foiiprev / (foiiprev + muy)) *
            matrix(c(1 - exp(- (1 - A) * (foiiprev[1] + muy[1])),
                     exp(- (1 - A) * (foiiprev[1] + muy[1]) -
@@ -90,7 +90,7 @@ FOI <- function(age, y, rij, muy, N, D, Lmax, A, startpar,
       # Bernoulli loglikelihood used to estimate FOI
       ll[i] <- y[i] * log(prev[i] + 1e-8) + (1 - y[i]) * log(1 - prev[i] + 1e-8)
     }
-    R0ij <- (N / L) * D * bij[1 : Lmax, 1 : Lmax]
+    R0ij <- (N / L) * Dur * bij[1 : Lmax, 1 : Lmax]
     Mij <- diag(c(My[1 : Lmax])) # g(a) (see notes)
     NGM <- Mij %*% R0ij
     NGM[is.na(NGM)] <- 0 # Replace missings with zeros
@@ -105,11 +105,11 @@ FOI <- function(age, y, rij, muy, N, D, Lmax, A, startpar,
                 foi = foiiprev, sero = prev, Rvalues = Rvec))
   }
   # Minimise the above with respect to the loglikelihood
-  q.result <- nlm(function(qpar){return(qproc(age, y, qpar, rij, Lmax, N, D)$ll)},
+  q.result <- nlm(function(qpar){return(qproc(age, y, qpar, rij, Lmax, N, Dur)$ll)},
                   startpar, print.level = print)
   # Return the values obtained for the value that minimises the above
   result.global <- qproc(age = age, y = y, q = q.result$estimate, rij = rij,
-                         Lmax = Lmax, N = N, D = D)
+                         Lmax = Lmax, N = N, Dur = Dur)
   #if(isTRUE(all.equal(q.result$estimate, startpar))){warning("Optimisation did not start")}
   return(list(qhat = q.result$estimate, deviance = q.result$minimum, 
               aic = q.result$minimum + 2,
@@ -118,7 +118,7 @@ FOI <- function(age, y, rij, muy, N, D, Lmax, A, startpar,
               lambda = result.global$foi,
               R = max(as.double(result.global$Rvalues)), # Spectral radius
               pi = result.global$sero, inputs = list(start = startpar, prop = prop,
-              age = age, y = y, rij = rij, muy = muy, N = N, D = D,
+              age = age, y = y, rij = rij, muy = muy, N = N, Dur = Dur,
               Lmax = Lmax, A = A, print = print),
               iterations = q.result$iterations))
 }
