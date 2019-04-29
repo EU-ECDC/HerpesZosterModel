@@ -3,8 +3,14 @@ source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/mod
 
 # Save plot
 tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
-     width = 2000, height = 1000)
-layout(matrix(seq(1, length(use), nrow = 3, byrow = TRUE)))
+     width = 1000, height = 3000)
+n_cols <- 2
+if(length(use) %% n_cols == 0){
+  seq_mat <- seq(1, length(use))
+} else {
+  seq_mat <- c(seq(1, length(use)), 0)
+}
+layout(matrix(seq_mat, ncol = n_cols, byrow = TRUE))
 i <- 1
 while(i <= length(use)){
   code <- use[i]
