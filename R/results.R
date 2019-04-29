@@ -1,19 +1,13 @@
 source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/load_data.R")
 source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/model.R")
 
-# Save plot
-tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
-     width = 1000, height = 3000)
-n_cols <- 2
-if(length(use) %% n_cols == 0){
-  seq_mat <- seq(1, length(use))
-} else {
-  seq_mat <- c(seq(1, length(use)), 0)
-}
-layout(matrix(seq_mat, ncol = n_cols, byrow = TRUE))
-i <- 1
-while(i <= length(use)){
-  code <- use[i]
+library(ggplot2)
+theme_set(theme_classic() %+replace%
+            theme(plot.title = element_text(hjust = 0.5))) # Ensure centred titles
+library(gridExtra)
+
+# Plot
+plot_results <- function(code, ...){
   get_data(code)
   res1 <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),
@@ -24,14 +18,6 @@ while(i <= length(use)){
               N = sum(popSize), D = 6 / 365, A = 0.5, Lmax = 70, 
               prop = "loglin", startpar = c(0.5, 0.3))
   
-  # Plot results
-  plot(res1$lambda, ylim = c(0, 1), xlab = "age", ylab = "", type = "l", col = 4)
-  points(unique(cbind(sero$AGE, res1$pi)), type = "l", col = 4)
-  text(length(res1$lambda), tail(res1$lambda, 1) + 0.05, "FOI")#, col = 4)
-  text(max(sero$AGE), tail(res1$pi, 1) - 0.05, "prev")#, col = 4)
-  points(res2$lambda, ylim = c(0, 1), xlab = "age", ylab = "", type = "l")
-  points(unique(cbind(sero$AGE, res2$pi)), type = "l")
-  # Add seroprevalence points
   subset <- (sero$AGE > 0.5) & (sero$AGE < 80) &
     (!is.na(sero$AGE)) & !is.na(sero$indic)
   sero <- sero[subset, ]
@@ -42,26 +28,7 @@ while(i <= length(use)){
   neg <- table(y, round(a))[1, ]
   pos <- table(y, round(a))[2, ]
   tot <- neg + pos
-  points(grid, pos / tot, cex = 0.02 * tot)
-  # Add right axis, legend, and title
-  axis(4, at = pretty(range(c(res1$lambda, res2$lambda))))
-  legend("topright", col = c(1, 4), c("Log-linear", "Constant"), lty = 1)
-  title(main = code)
   
-  text(20, 0.7, paste("Sum of abs diff:",
-                      sum(abs(res1$lambda[as.numeric(names(pos / tot))] - (pos / tot)))),
-       col = 4)
-  text(20, 0.6, paste("Sum of abs diff:",
-                      sum(abs(res2$lambda[as.numeric(names(pos / tot))] - (pos / tot)))))
-  
-  if(code == "RS"){
-    text(20, 0.4, "NB Serbia's contact matrix is interpolated")
-  }
-  i <- i + 1
-}
-dev.off()
-
-if(FALSE){ #TODO ggplot2 version
   ggplot() +
     geom_point(data = as.data.frame(cbind(grid, neg, pos, tot)), 
                mapping = aes(x = grid, y = pos / tot, size = 0.02 * tot),
@@ -74,5 +41,32 @@ if(FALSE){ #TODO ggplot2 version
               mapping = aes(x = age, y = lambda), colour = 1) +
     geom_line(data = data.frame(unique(cbind(sero$AGE, res2$pi))),
               mapping = aes(x = X1, y = X2), colour = 1) +
-    labs(title = opts[i, 1])
+    annotate(geom = "text", x = res1$inputs$Lmax, y = 0.9, 
+             label = "Constant", colour = 4) +
+    annotate(geom = "text", x = res2$inputs$Lmax, y = 0.8, 
+             label = "Log-linear") +
+    annotate(geom = "text", x = 20, y = 0.7, 
+             label = paste("Sum of abs diff:",
+                           sum(abs(res1$lambda[as.numeric(names(pos / tot))] - (pos / tot)))),
+             colour = 4) +
+    annotate(geom = "text", x = 20, y = 0.6, 
+             label = paste("Sum of abs diff:",
+                           sum(abs(res2$lambda[as.numeric(names(pos / tot))] - (pos / tot))))) +
+    labs(title = code, x = "age", y = "") + 
+    theme(legend.position = "none") +
+    if(code == "RS"){
+      annotate(geom = "text", x = 20, y = 0.4, label = "NB Serbia's contact matrix is interpolated")
+    } else {
+      NULL
+    }
 }
+plot_list <- lapply(use, plot_results)
+lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
+                                                envir = .GlobalEnv)})
+
+# Save plot
+tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
+     width = 1000, height = 3000)
+# Current options based on availability of data
+grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
+while(!is.null(dev.list())) dev.off()
