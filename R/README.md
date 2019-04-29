@@ -14,9 +14,9 @@ The function `get_data` retrieves and attaches to the global envioronment
 - The contact matrix
 - Fitted mortality data
 - Population size
-for a given country. A table called `opts` with the countries we have available data for is used within this function. To retrieve data for Italy, which is the fourth country in the table, we call 
+for a given country. To retrieve data for Italy we call 
 ```R
-get_data(i = 4)
+get_data(code = "IT")
 ```
 The script further contains plots of the serological data, the mortality data, and the contact matrices for the countries considered.
 
@@ -56,7 +56,7 @@ It returns
 
 To fit the two models we are currently considering for Italy, run
 ```R
-get_data(i = 4)
+get_data(code = "IT")
 FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
     muy = predict(demfit, type = "response"),
     N = sum(PS), D = 6 / 365, A = 0.5, Lmax = 70, 
@@ -74,16 +74,16 @@ This script is used to examine the performance of the model fitting. The functio
 ### Minimisation 
 The function `check_conv` returns a table containing information regarding the minimisation performed in `FOI`. To obtain this information for the two models above, we use
 ```R
-check_conv(i = 4, D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
-check_conv(i = 4, D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
+check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 ```
 A function providing a plot of the output of `check_conv` is also included and is called `plot_conv` and takes the same arguments as above, i.e.
 ```R
-plot_conv(i = 4, D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
 ```
 We have further included the function `rates_conv` which calculates the reproduction numbers for each of the values of the proportionality factor estimate obtained during the optimisation.
 ```R
-rates_conv(i = 4, D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
 ```
 ### Minimisation 
 We generate starting parameters to examine the difference between the starting value and the estimated value. For this we have created a function `run_model` which wraps around `FOI` and returns starting values, estimated values, reproduction numbers, and an indicator for the country.
