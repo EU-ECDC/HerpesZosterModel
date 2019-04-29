@@ -238,8 +238,8 @@ get_data <- function(i){
   }
   
   contact_w[is.na(contact_w)] <- 0 # Replace missings with zeros
-  sero <- sero[!is.na(sero$indic) & !is.na(sero$AGE), ]
-  sero <- sero[order(sero$AGE), ]
+  sero <- sero[!is.na(sero$indic) & !is.na(sero$AGE), ] # remove serology results where no indication or age specified
+  sero <- sero[order(sero$AGE), ] # order serology results by age
   
   if(dim(pop)[1] == 0)
     warning("Population data for year 2003 not available from Eurostat database demo_pjan")
