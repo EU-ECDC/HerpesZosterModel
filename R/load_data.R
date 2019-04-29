@@ -342,16 +342,29 @@ while(!is.null(dev.list())) dev.off()
 plot_mat <- function(code, ...){
   get_data(code)
   tmp <- melt(contact_w)
-  ggplot(data = tmp, aes_string(x = names(tmp)[1], y = names(tmp)[2], 
-                                            fill = names(tmp)[3])) + 
+  p <- ggplot(data = tmp, aes_string(x = names(tmp)[1], y = names(tmp)[2], 
+                                fill = names(tmp)[3])) + 
     geom_tile() + 
     scale_fill_viridis_c(direction = - 1, option = "E", ...) +
-    labs(x = "", y = "", title = code)
+    labs(x = "", y = "", title = code) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    # Rotate x-axis labels
+    if(is.factor(tmp[, 1])){ # Add spacing
+      scale_x_discrete(breaks = levels(tmp[, 1])[c(TRUE, rep(FALSE, 9))])
+    } else {
+      NULL
+    }
+  p <- p +
+    if(is.factor(tmp[, 2])){ # Add spacing
+      scale_y_discrete(breaks = levels(tmp[, 2])[c(TRUE, rep(FALSE, 9))])
+    } else {
+      NULL
+    }
+  return(p)
 }
 plot_list <- lapply(use, plot_mat)
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
                                                 envir = .GlobalEnv)})
-
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/contact_matrices.tif",
      width = 800, height = 600)
 # Current options based on availability of data
