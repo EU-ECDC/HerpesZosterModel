@@ -364,7 +364,7 @@ plot_pop <- function(code, ...){
   ggplot(data = data.frame(age = 1 : length(popSize), popSize), 
          mapping = aes(x = age, 
                        y = popSize)) +
-    geom_col() +
+    geom_col(width = 1) +
     labs(y = "Population", x = "Age", title = code) +
     coord_flip() 
 }
