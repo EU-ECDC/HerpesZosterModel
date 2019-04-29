@@ -269,7 +269,11 @@ get_data <- function(code){
       return(mat[x, ] / dat[x])
     }
     load("S:/HelenJohnson/Herpes Zoster/Data/fumanelli.Rda")
-    mat <- fumanelli$IE$total
+    if(code == "IE"){
+      mat <- fumanelli$IE$total
+    } else {
+      mat <- fumanelli$SK$total
+    }  
     tmp <- lapply(1 : dim(mat)[1],
                   function(x){weigh(x, 
                                     dat = pop,
