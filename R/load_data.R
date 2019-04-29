@@ -10,6 +10,9 @@ library(socialmixr)
 library(eurostat)
 library(akima)
 library(gridExtra)
+library(ggplot2)
+theme_set(theme_classic() %+replace%
+            theme(plot.title = element_text(hjust = 0.5))) # Ensure centred titles
 
 # Load data
 ## ESEN2 Seroprevalence
@@ -63,22 +66,22 @@ get_data <- function(code){
     filter(geo == code) %>% # Country of interest
     filter(sex == "T") %>% # Total population (males & females)
     filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>% # Include only population values by age
-    filter(time == "2003-01-01") # 
+    filter(time == "2003-01-01") # Determined from date ESEN2 gathered
   
   # Mortality data
   mort <- get_eurostat(id = "demo_magec") %>% # Number of deaths
     filter(geo == code) %>% # Country of interest
     filter(sex == "T") %>%   # Total number of deaths (males & females)
     filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>% # Include only deaths by age
-    filter(time == "2003-01-01") #
+    filter(time == "2003-01-01") # Determined from date ESEN2 gathered
   
   # Re-order population data by age
   popAge <- droplevels(pop$age) # Drop unused levels
   levels(popAge)[length(levels(popAge))] <- "0.5" # Relabel Y_LT1 as 0.5
   popAge <- as.numeric(gsub("[A-z]", "", popAge)) # Replace letters (here Y) with nothing
   # and convert to numeric
-  popAge <- sort(popAge) # Sort population age such that it is ascending
   
+  # Population sizes by age
   popSize <- pop %>% 
     mutate(popAge = popAge) %>%
     arrange(popAge) %>% 
@@ -91,42 +94,54 @@ get_data <- function(code){
   levels(mortAge)[length(levels(mortAge))] <- "0.5" # Relabel Y_LT1 as 0.5
   mortAge <- as.numeric(gsub("[A-z]", "", mortAge)) # Replace letters with nothing
   # and convert to numeric
-  mortAge <- sort(mortAge) # Sort mortality age such that it is ascending
   
+  # Number of deaths by age
   nDeaths <- mort %>% 
     mutate(mortAge = mortAge) %>%
     arrange(mortAge) %>% 
     mutate(age = factor(age, age)) %>%
     select(values)
   nDeaths <- unlist(nDeaths)
-  nDeaths <- nDeaths[c(1 : length(popSize))]
   
-  # Fit mortality model 
-  demfit <- mgcv::gam(nDeaths ~ s(mortAge[c(1 : length(popSize))]), 
+  len <- min(length(popSize), length(nDeaths))
+  nDeaths <- nDeaths[c(1 : len)] # Ensure same dimensions for later calculation
+  popSize <- popSize[c(1 : len)] # Ensure same dimensions for later calculation
+  
+  popAge <- sort(popAge) # Sort population age such that it is ascending
+  mortAge <- sort(mortAge) # Sort mortality age such that it is ascending
+  
+  # Fit mortality model
+  ## Mortality rates (offset by population size) are estimated through a Poisson GAM
+  ## with a log link
+  demfit <- mgcv::gam(nDeaths ~ s(mortAge[c(1 : len)]), 
                       offset = log(popSize),
                       family = "poisson", link = "log")
   
-  if(countries$name[which(countries$code %in% code)] %in% # Country name from code
-     unique(polymod$participants$country)){ # included in list of POLYMOD countries
+  # Country name from code included in list of POLYMOD countries
+  if(countries$name[which(countries$code %in% code)] %in%
+     unique(polymod$participants$country)){
     # Obtain contact matrix from POLYMOD 
     cont <- contact_matrix(polymod,
                            countries = countries$name[which(countries$code %in% code)],
+                           # Contacts lasting more than 15 minutes
                            filter = ("phys_contact" > 3),
                            quiet = TRUE)$matrix
+    # quiet = TRUE supresses message about citing POLYMOD package
     
     # Select seroprevalence data
     if(code == "UK"){ # UK is coded differently in this data set
       sero <- esen %>% 
-        filter(COUNTRY == code) # Seroprevalence (ESEN2)
+        filter(COUNTRY == code)
     } else {
       sero <- esen %>% 
         filter(COUNTRY == countries$name[which(countries$code %in% code)])
     }
     
-    # Weight contact matrix by population sizes to obtain c(i, j) from m(i, j)
+    # Weight contact intensities by population sizes to obtain contact rates
     pop_weights <- data.frame(age = popAge, size = popSize)[1 : dim(cont)[1], ]
     weigh <- function(x){
       cont[x, ] / pop_weights[x, 2]
+      # Person doing the contacting is weighted
     }
     tmp <- lapply(1 : dim(cont)[1], weigh)
     contact_w <- do.call(rbind, tmp)
@@ -158,11 +173,13 @@ get_data <- function(code){
     
     # Load contact matrix
     load("S:/HelenJohnson/Herpes Zoster/Data/prem.Rda")
+    # Weight contact intensities by population sizes to obtain contact rates
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
       AGE <- gsub("[A-z]","", AGE)
       AGE <- as.numeric(AGE)
+      # Ensure both follow same age pattern
       AGE <- sort(AGE, index.return = TRUE)$`x`
       dat <- dat[sort(AGE, index.return = TRUE)$ix, ]$values
       return(mat[x, ] / dat[x])
@@ -172,32 +189,27 @@ get_data <- function(code){
       0.19 * prem$RS$work + 0.33 * prem$RS$other
     tmp <- lapply(1 : dim(mat)[1],
                   function(x){weigh(x, 
-                                    dat = get_eurostat(id = "demo_pjan") %>% # Population size
-                                      filter(geo == code) %>% # Country of interest
-                                      filter(sex == "T") %>%
-                                      filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
-                                      filter(time == "2003-01-01"),
+                                    dat = pop,
                                     mat = mat)})
     RS <- as.matrix(do.call(rbind, tmp))
     dimnames(RS)[[1]] <- dimnames(RS)[[2]]
     #contact_w <- RS
-    
     # Interpolate contact matrix
     tmp <- RS
     tmp <- melt(tmp)
-    tmp %>% mutate_if(is.factor, as.character) -> tmp
-    tmp[which(tmp$Var1 == "75+"), ]$Var1 <- rep(75, length(tmp[which(tmp$Var1 == "75+"), ]$Var1))
-    tmp[which(tmp$Var2 == "75+"), ]$Var2 <- rep(75, length(tmp[which(tmp$Var2 == "75+"), ]$Var2))
-    tmp[which(tmp$Var1 == "00-04"), ]$Var1 <- rep(0, length(tmp[which(tmp$Var1 == "00-04"), ]$Var1))
-    tmp[which(tmp$Var2 == "00-04"), ]$Var2 <- rep(0, length(tmp[which(tmp$Var2 == "00-04"), ]$Var2))
+    tmp %>% mutate_if(is.factor, as.character) -> tmp # Turn characters into factors
+    # Remove age ranges with +
+    tmp <- tmp[- which(tmp$Var1 == "75+"), ]
+    tmp <- tmp[- which(tmp$Var2 == "75+"), ]
+    # Take mid range value of age
     tmp$Var1 <- sapply(strsplit(tmp$Var1, split = "-"),
                        function(x) mean(as.numeric(x)))
     tmp$Var2 <- sapply(strsplit(tmp$Var2, split = "-"),
                        function(x) mean(as.numeric(x)))
     
     contact_w <- interp(tmp$Var1, tmp$Var2, tmp$value,
-                        nx = 75, ny = 75)$z
-    colnames(contact_w) <- rownames(contact_w) <- seq(0, 74, 1)
+                        nx = 74, ny = 74)$z
+    colnames(contact_w) <- rownames(contact_w) <- seq(0, 73, 1)
   }
   if(code == "SI"){
     # Create Slovenia data based on Figure 1 from Soca et al 2010
@@ -205,8 +217,7 @@ get_data <- function(code){
     # https://doi.org/10.1186/1471-2458-10-360
     tmp <- read_excel("S:/HelenJohnson/Herpes Zoster/Force of infection/old/slovenia_seroprev.xlsx")
     # Convert columns to numeric
-    cols <- c(2, 3, 4)
-    tmp[, cols] %<>% lapply(function(x) as.numeric(x))
+    tmp[, c(2, 3, 4)] %<>% lapply(function(x) as.numeric(x))
     
     tmp <- na.omit(tmp) # Remove excess rows added due to additional calculations
     # further down in the sheet
@@ -223,7 +234,7 @@ get_data <- function(code){
     sero <- data.frame(COUNTRY = rep("Slovenia", length(indic)),
                        AGE = age_vals,
                        indic)
-    # Contact matrix
+    # Contact matrix - same function used as that for Serbia
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
@@ -237,11 +248,7 @@ get_data <- function(code){
     mat <- fumanelli$SI$total
     tmp <- lapply(1 : dim(mat)[1],
                   function(x){weigh(x, 
-                                    dat = get_eurostat(id = "demo_pjan") %>% # Population size
-                                      filter(geo == code) %>% # Country of interest
-                                      filter(sex == "T") %>%
-                                      filter(!(age %in% c("TOTAL", "UNK", "Y_OPEN"))) %>%
-                                      filter(time == "2003-01-01"),
+                                    dat = pop,
                                     mat = mat)})
     SI <- as.matrix(do.call(rbind, tmp))
     dimnames(SI)[[1]] <- dimnames(SI)[[2]]
@@ -268,15 +275,16 @@ get_data <- function(code){
 
 # Countries for which we have seroprevalence data
 use <- c(countries$code[countries$name %in% 
-                          unique(esen$COUNTRY)], 
-         "UK", "RS", "SI")
+                          unique(esen$COUNTRY)], "UK", "RS", "SI")
 
 ## Plot mortality
 plot_mort <- function(code, ...){
   get_data(code)
-  vals <- plot(demfit)
+  vals <- plot(demfit) # Save output from demfit to plot in ggplot2 style
   ggplot(mapping = aes(x = x, y = fit), 
-         data = as.data.frame(vals[[1]][c("x", "se", "fit")])) + 
+         data = as.data.frame(vals[[1]][c("x", "se", "fit")])
+         # Requried parts from vals saved as data frame
+         ) + 
     labs(x = "age", y = "f(age)", title = code) +
     geom_line() +
     geom_ribbon(aes(ymin = fit - se,
@@ -284,9 +292,6 @@ plot_mort <- function(code, ...){
                 alpha = 0.2)  + 
     theme(plot.title = element_text(hjust = 0.5))
 }
-
-theme_set(theme_classic()  %+replace%
-  theme(plot.title = element_text(hjust = 0.5)))
 
 # Save list of plots for the countries in use
 plot_list <- lapply(use, plot_mort)
@@ -298,18 +303,18 @@ tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/mortality.tif",
      width = 800, height = 600)
 # Current options based on availability of data
 grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+# TODO see if we can replace ^ with use somehow
 while(!is.null(dev.list())) dev.off()
 
 ## Plot serological data
 plot_sero <- function(code, ...){
   get_data(code)
-  print(code)
-  subset <- (sero$AGE > 0.5) & (sero$AGE < 80) &
-    (!is.na(sero$AGE)) & !is.na(sero$indic)
-  sero <- sero[subset, ]
+  sero <- sero[(sero$AGE > 0.5) & (sero$AGE < 80) &
+    (!is.na(sero$AGE)) & !is.na(sero$indic), ]
   y <- sero$indic[order(sero$AGE)]
   a <- sero$AGE[order(sero$AGE)]
   
+  # Calculate seropositivity rates
   grid <- sort(unique(round(a)))
   neg <- table(y, round(a))[1, ]
   pos <- table(y, round(a))[2, ]
@@ -322,6 +327,7 @@ plot_sero <- function(code, ...){
     xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank())
 }
 
+# Save list of plots and assign to the environment
 plot_list <- lapply(use, plot_sero)
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
                                                 envir = .GlobalEnv)})
@@ -332,6 +338,7 @@ tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/serology.tif",
 grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
 
+## Plot contact rates
 # Adapted from https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/old_scripts/plots/plot_polymod_matrix.R
 plot_mat <- function(code, ...){
   get_data(code)
@@ -341,11 +348,31 @@ plot_mat <- function(code, ...){
     scale_fill_viridis_c(direction = - 1, option = "E", ...) +
     labs(x = "", y = "", title = code)
 }
-plot_list <- lapply(1 : length(use), plot_mat)
+plot_list <- lapply(use, plot_mat)
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
                                                 envir = .GlobalEnv)})
 
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/contact_matrices.tif",
+     width = 800, height = 600)
+# Current options based on availability of data
+grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+while(!is.null(dev.list())) dev.off()
+
+## Plot population
+plot_pop <- function(code, ...){
+  get_data(code)
+  ggplot(data = data.frame(age = 1 : length(popSize), popSize), 
+         mapping = aes(x = age, 
+                       y = popSize)) +
+    geom_col() +
+    labs(y = "Population", x = "Age", title = code) +
+    coord_flip() 
+}
+plot_list <- lapply(use, plot_pop)
+lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
+                                                envir = .GlobalEnv)})
+
+tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/population.tif",
      width = 800, height = 600)
 # Current options based on availability of data
 grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)

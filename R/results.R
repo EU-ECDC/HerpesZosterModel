@@ -4,7 +4,7 @@ source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/mod
 # Save plot
 tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
      width = 2000, height = 1000)
-layout(matrix(seq(1, length(use), nrow = 3, byrow = TRUE))
+layout(matrix(seq(1, length(use), nrow = 3, byrow = TRUE)))
 i <- 1
 while(i <= length(use)){
   code <- use[i]

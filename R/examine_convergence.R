@@ -3,6 +3,8 @@ source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/mod
 
 library(stringr)
 library(ggplot2)
+theme_set(theme_classic() %+replace%
+            theme(plot.title = element_text(hjust = 0.5))) # Ensure centred titles
 library(reshape2)
 library(pbapply)
 library(beepr)
@@ -13,6 +15,7 @@ library(gridExtra)
 check_conv <- function(code, ...){
   get_data(code)
   # Capture printed output from nlm and put into table ---------------------------
+  # Capture the output and make it lowercase for regex
   tmp <- capture.output(res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
                                    muy = predict(demfit, type = "response"),
                                    N = sum(popSize), ..., print = 2))
@@ -23,31 +26,34 @@ check_conv <- function(code, ...){
   no_par <- as.numeric(no_par)
   
   iter_table <- function(tmp, no_par){
+    # Locate the following terms in the captured text
     its <- which(str_detect(tmp, "iteration"))
     stp <- which(str_detect(tmp, "step"))
     par <- which(str_detect(tmp, "parameter"))
     fnc <- which(str_detect(tmp, "function"))
     grad <- which(str_detect(tmp, "gradient"))
-    iteration <- seq(from = 1, to = length(its)) - 1
+    iteration <- seq(from = 1, to = length(its)) - 1 # it starts at 0
     
+    # Stop value to help us obtain matching length of inputs in the tables returned
+    stop <- min(c(length(stp), length(its), length(par), length(fnc), length(grad)))
     get_vals <- function(input){
       input <- input[1 : stop]
+      # Variables with one value
       values <- as.numeric(sapply(str_split(string = tmp[input + 1], pattern = " "), 
-                                  function(x) x[[2]]))
+                                  function(x) x[[2]])) 
       return(values)
     }
     get_vals2 <- function(input){
       input <- input[1 : stop]
+      # Variables with two values
       str <- str_split(string = tmp[input + 1], pattern = " ")
       str <- lapply(str, function(x) x[!(x %in% c("[1]", ""))])
       values <- cbind(as.numeric(sapply(str, function(x) x[[1]])),
                       as.numeric(sapply(str, function(x) x[[2]])))
       return(values)
     }
-    
+    # Get the values for the proportionality factor with one parameter
     if(no_par == 1){
-      stop <- min(c(length(stp), length(its), length(par), length(fnc), length(grad)))
-      
       step <- get_vals(stp)
       params <- get_vals(par)
       func <- get_vals(fnc)
@@ -55,17 +61,17 @@ check_conv <- function(code, ...){
       return(list(iteration = iteration, step = step, params = params,
                   func = func, gradient = gradient))
     }
+    # Get the values for the proportionality factor with two parameters
     if(no_par == 2){
-      stop <- min(c(length(stp), length(its), length(par), length(fnc), length(grad)))
-      
       step <- get_vals2(stp)
       params <- get_vals2(par)
-      func <- get_vals(fnc)
+      func <- get_vals(fnc) # Function does not return two values
       gradient <- get_vals2(grad)
       return(list(iteration = iteration, step = step, params = params,
                   func = func, gradient = gradient))
     }
   }
+  # Save the values as tables
   if(no_par == 1)
   {return(as_tibble(cbind(iteration = iter_table(tmp, no_par)$iteration,
                           step = iter_table(tmp, no_par)$step,
@@ -94,15 +100,16 @@ check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startp
 
 # Plots of convergence for each country
 plot_conv <- function(code, ...){
+  # Get the table of convergence
   tmp <- check_conv(code, ...)
-  if("params" %in% names(tmp)){
+  if("params" %in% names(tmp)){ # One parameter
     grid.arrange(ggplot(mapping = aes(x = iteration, y = params, group = 1), 
                         data = tmp) + 
                    geom_point() + 
                    geom_line() +
                    labs(title = code))
   }
-  if("params1" %in% names(tmp)){
+  if("params1" %in% names(tmp)){ # Two parameters
     grid.arrange(
       ggplot(mapping = aes(x = iteration, y = value, colour = variable), 
              data = melt(tmp, id = "iteration", c("params1", "params2"))) + 
@@ -126,8 +133,9 @@ plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", start
 plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
 rates_conv <- function(code, ...){
-  tmp <- check_conv(code, ...)
-  # Calculations of rates
+  # Get the table of convergence
+  tmp <- check_conv(code, ...) # This runs get_data so objects below exist
+  # Calculations of rates - inner workings from the model
   age <- sero$AGE
   y <- sero$indic
   rij <- contact_w
@@ -138,7 +146,9 @@ rates_conv <- function(code, ...){
   My <- exp(- cumsum(muy))
   My <- My[1 : Lmax]
   htab <- table(floor(age), y)
-  if("params" %in% names(tmp)){
+  # For each value of the parameter(s) estimated during the minimisation procedure
+  # calculate the corresponding R0 and R values
+  if("params" %in% names(tmp)){ # One parameter
     dat <- sapply(tmp$params, function(qpar){
       bij <- 365 * qpar * (rij)[1 : Lmax, 1 : Lmax]
       R0ij <- (N / L) * D * bij[1 : Lmax, 1 : Lmax]
@@ -155,7 +165,7 @@ rates_conv <- function(code, ...){
                       R0 = unlist(t(dat)[, 1]), R = unlist(t(dat)[, 2]),
                       params = tmp$params))
   }
-  if("params1" %in% names(tmp)){
+  if("params1" %in% names(tmp)){ # Two parameters
     dat <- mapply(function(q1, q2){
       qpar <- c(q1, q2)
       q.f <- function(x, y){exp(qpar[1] + qpar[2] * x)}
@@ -186,38 +196,47 @@ ggplot(data = rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70,
   geom_point() + geom_line()
 rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
-# Look at all the R and R0 values
-capt <- lapply(1 : dim(opts)[1], function(x){
-  tryCatch(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
+# Look at all the R and R0 values through loops which run rates_conv
+# for all the countries we have available data for and save this as capt
+
+## One parameter
+capt <- lapply(1 : length(use), function(x){
+  tryCatch(rates_conv(use[x], D = 6 / 365, A = 0.5, Lmax = 70, 
                       prop = "constant", startpar = 0.5), 
            error = function(e) NULL)}) # Ignore errors for now
-names(capt) <- opts[, 3]
+names(capt) <- use
 capt
 
-capt <- lapply(1 : dim(opts)[1], function(x){
-  tryCatch(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
+## Two parameters
+capt <- lapply(1 : length(use), function(x){
+  tryCatch(rates_conv(use[x], D = 6 / 365, A = 0.5, Lmax = 70, 
                       prop = "loglin", startpar = c(0.5, 0.3)), 
            error = function(e) NULL)}) # Ignore errors for now
-names(capt) <- opts[, 3]
+names(capt) <- use
 capt
 
 # Examining various starting parameters ----------------------------------------
 # Generate random starting parameters for age-dependent proportionality factor
 set.seed(13)
+# All combinations of two values from n generated uniformly distributed random
+# variables between 0 and 1
 vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
+# Adding previously used value as a sanity check
 vals <- rbind(vals, c(0.2, 0.1))
-vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
-capt <- sapply(1 : dim(opts)[1], function(code){
+vals <- rbind(vals, c(0.5, 0.3))
+
+# 
+capt <- sapply(1 : length(use), function(y){
   sapply(1 : dim(vals)[1], function(x){
-    tryCatch(cbind(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70, 
+    tryCatch(cbind(rates_conv(code = use[y], D = 6 / 365, A = 0.5, Lmax = 70, 
                               prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])),
-                   id = rep(opts[x, 3], 
-                            dim(rates_conv(x, D = 6 / 365, A = 0.5, Lmax = 70,
+                   id = rep(use[x], 
+                            dim(rates_conv(code = use[y], D = 6 / 365, A = 0.5, Lmax = 70,
                                            prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])))[1])),
              error = function(e) NULL)})}) # Ignore errors for now
-names(capt) <- rep(1 : (length(capt) / dim(opts)[1]),
-                   times = dim(opts)[1])
-colnames(capt) <- opts[, 3]
+names(capt) <- rep(1 : (length(capt) / length(use)),
+                   times = length(use))
+colnames(capt) <- use
 capt
 
 # Rework data into a format that is useful
@@ -233,14 +252,14 @@ run_model <- function(code, ...){
   res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
              muy = predict(demfit, type = "response"),
              N = sum(popSize), ...)
-  if(length(res$inputs$start) == 1){
+  if(length(res$inputs$start) == 1){ # One parameter
     out <- list(start = res$inputs$start,
                 est = res$qhat,
                 est_R0 = res$R0,
                 est_R = res$R,
                 id = code)
   }
-  if(length(res$inputs$start) == 2){
+  if(length(res$inputs$start) == 2){ # Two parameters
     out <- list(start_gamma1 = res$inputs$start[1],
                 start_gamma2 = res$inputs$start[2], 
                 est_gamma1 = res$qhat[1],
@@ -256,19 +275,23 @@ capt <- lapply(1 : dim(vals)[1], function(x){
   tryCatch(t(run_model(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, 
                        startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
            error = function(e) NULL)}) # Ignore errors
-nam <- colnames(capt[[1]])
-capt <- matrix(unlist(capt), ncol = 7, byrow = TRUE)
-colnames(capt) <- nam
+## Turn into table
+nam <- colnames(capt[[1]]) # Save the names
+capt <- matrix(unlist(capt), ncol = 7, byrow = TRUE) # Turn the list into a matrix
+# Note that ncol is 7 because we are considering prop = "loglin"
+colnames(capt) <- nam # Add the names back
 capt <- as.data.frame(capt)
+# Ensure all columns except ID are numeric
 capt[, - 7] %<>% lapply(function(x) as.numeric(levels(x))[x])
 
+# Reformat for use with ggplot2
 tmp <- data.frame(start = c(capt[, 1], capt[, 2]),
                   est = c(capt[, 3], capt[, 4]),
                   par = rep(c("gamma1", "gamma2"), c(dim(capt)[1], dim(capt)[1])),
                   R0 = c(capt[, 5], capt[, 5]),
                   R = c(capt[, 6], capt[, 6]),
                   id = c(capt[, 7], capt[, 7]))
-
+# Plot
 ggplot() +
   geom_count(data = tmp,
              mapping = aes(x = start, y = est, colour = par), alpha = 0.3) +
@@ -282,15 +305,11 @@ ggplot() +
   geom_histogram(data = tmp,
                  mapping = aes(x = R))
 
-# All countries
-set.seed(13)
-vals <- t(combn(runif(n = 8, min = 0, max = 1), 2))
-vals <- rbind(vals, c(0.2, 0.1))
-vals <- rbind(vals, c(0.5, 0.3)) # Adding previously used value as a sanity check
+# Do the same as above for all countries
 
 # Remove "pb" if progress bar not desired
-{capt <- pbsapply(1 : dim(opts)[1], function(code){lapply(1 : dim(vals)[1], function(x){
-  tryCatch(t(run_model(code, D = 6 / 365, A = 0.5, Lmax = 70, 
+{capt <- pbsapply(1 : length(use), function(y){lapply(1 : dim(vals)[1], function(x){
+  tryCatch(t(run_model(code = use[y], D = 6 / 365, A = 0.5, Lmax = 70, 
                        startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
            error = function(e) NULL)})}) # Ignore errors
 # Uncomment below if you want the script to announce when done
@@ -326,6 +345,7 @@ grid.arrange(fig,
                labs(y = "Estimated value", x = "Starting value"), ncol = 2)
 dev.off()
 
+# Plot logs of R and R0
 grid.arrange(ggplot(data = dat,
                     mapping = aes(x = log(R0), fill = id)) +
                geom_histogram() + scale_fill_viridis_d(direction = - 1) +
