@@ -271,12 +271,11 @@ get_data <- function(code){
   assign("popSize", popSize, envir = .GlobalEnv)
 }
 
-# Plots of data ----------------------------------------------------------------
-
 # Countries for which we have seroprevalence data
 use <- c(countries$code[countries$name %in% 
                           unique(esen$COUNTRY)], "UK", "RS", "SI")
 
+# Plots of data ----------------------------------------------------------------
 ## Plot mortality
 plot_mort <- function(code, ...){
   get_data(code)
@@ -342,8 +341,9 @@ while(!is.null(dev.list())) dev.off()
 # Adapted from https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/old_scripts/plots/plot_polymod_matrix.R
 plot_mat <- function(code, ...){
   get_data(code)
-  ggplot(data = melt(contact_w), aes_string(x = names(data)[1], y = names(data)[2], 
-                                            fill = names(data)[3])) + 
+  tmp <- melt(contact_w)
+  ggplot(data = tmp, aes_string(x = names(tmp)[1], y = names(tmp)[2], 
+                                            fill = names(tmp)[3])) + 
     geom_tile() + 
     scale_fill_viridis_c(direction = - 1, option = "E", ...) +
     labs(x = "", y = "", title = code)

@@ -95,8 +95,8 @@ check_conv <- function(code, ...){
 }
 
 # Example
-check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
-check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
+check_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+check_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Plots of convergence for each country
 plot_conv <- function(code, ...){
@@ -129,18 +129,25 @@ plot_conv <- function(code, ...){
 }
 
 # Example
-plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
-plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
+plot_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+plot_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
 rates_conv <- function(code, ...){
   # Get the table of convergence
   tmp <- check_conv(code, ...) # This runs get_data so objects below exist
   # Calculations of rates - inner workings from the model
+  ## Data
   age <- sero$AGE
   y <- sero$indic
   rij <- contact_w
   muy <- predict(demfit, type = "response")
   N <- sum(popSize)
+  ## Values as provided in model
+  inputs <- FOI(age, y, rij, muy, N, ...)$inputs
+  Dur <- inputs$Dur
+  A <- inputs$A
+  Lmax <- inputs$Lmax
+  ## Inner workings from model
   muy <- muy[1 : Lmax]
   L <- Lmax * mean(exp(- cumsum(muy)))
   My <- exp(- cumsum(muy))
@@ -151,7 +158,7 @@ rates_conv <- function(code, ...){
   if("params" %in% names(tmp)){ # One parameter
     dat <- sapply(tmp$params, function(qpar){
       bij <- 365 * qpar * (rij)[1 : Lmax, 1 : Lmax]
-      R0ij <- (N / L) * D * bij[1 : Lmax, 1 : Lmax]
+      R0ij <- (N / L) * Dur * bij[1 : Lmax, 1 : Lmax]
       Mij <- diag(c(My[1 : Lmax]))
       NGM <- Mij %*% R0ij
       NGM[is.na(NGM)] <- 0 # Replace missings with zeros
@@ -171,7 +178,7 @@ rates_conv <- function(code, ...){
       q.f <- function(x, y){exp(qpar[1] + qpar[2] * x)}
       qij <- outer(c(1 : Lmax), c(1 : Lmax), q.f)
       bij <- 365 * qij * (rij)[1 : Lmax, 1 : Lmax]
-      R0ij <- (N / L) * D * bij[1 : Lmax, 1 : Lmax]
+      R0ij <- (N / L) * Dur * bij[1 : Lmax, 1 : Lmax]
       Mij <- diag(c(My[1 : Lmax]))
       NGM <- Mij %*% R0ij
       NGM[is.na(NGM)] <- 0 # Replace missings with zeros
@@ -189,19 +196,19 @@ rates_conv <- function(code, ...){
 # TODO Find out why this only works when Lmax already defined in the global environment
 
 # Example
-rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
-ggplot(data = rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, 
+rates_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+ggplot(data = rates_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, 
                          prop = "constant", startpar = 0.5),
        mapping = aes(x = iteration, y = R0)) + 
   geom_point() + geom_line()
-rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
+rates_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 
 # Look at all the R and R0 values through loops which run rates_conv
 # for all the countries we have available data for and save this as capt
 
 ## One parameter
 capt <- lapply(1 : length(use), function(x){
-  tryCatch(rates_conv(use[x], D = 6 / 365, A = 0.5, Lmax = 70, 
+  tryCatch(rates_conv(use[x], Dur = 6 / 365, A = 0.5, Lmax = 70, 
                       prop = "constant", startpar = 0.5), 
            error = function(e) NULL)}) # Ignore errors for now
 names(capt) <- use
@@ -209,7 +216,7 @@ capt
 
 ## Two parameters
 capt <- lapply(1 : length(use), function(x){
-  tryCatch(rates_conv(use[x], D = 6 / 365, A = 0.5, Lmax = 70, 
+  tryCatch(rates_conv(use[x], Dur = 6 / 365, A = 0.5, Lmax = 70, 
                       prop = "loglin", startpar = c(0.5, 0.3)), 
            error = function(e) NULL)}) # Ignore errors for now
 names(capt) <- use
@@ -225,13 +232,13 @@ vals <- t(combn(runif(n = 4, min = 0, max = 1), 2))
 vals <- rbind(vals, c(0.2, 0.1))
 vals <- rbind(vals, c(0.5, 0.3))
 
-# 
+# Save the outputs 
 capt <- sapply(1 : length(use), function(y){
   sapply(1 : dim(vals)[1], function(x){
-    tryCatch(cbind(rates_conv(code = use[y], D = 6 / 365, A = 0.5, Lmax = 70, 
+    tryCatch(cbind(rates_conv(code = use[y], Dur = 6 / 365, A = 0.5, Lmax = 70, 
                               prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])),
-                   id = rep(use[x], 
-                            dim(rates_conv(code = use[y], D = 6 / 365, A = 0.5, Lmax = 70,
+                   id = rep(use[y], 
+                            dim(rates_conv(code = use[y], Dur = 6 / 365, A = 0.5, Lmax = 70,
                                            prop = "loglin", startpar = c(vals[x, 1], vals[x, 2])))[1])),
              error = function(e) NULL)})}) # Ignore errors for now
 names(capt) <- rep(1 : (length(capt) / length(use)),
@@ -272,7 +279,7 @@ run_model <- function(code, ...){
 }
 # Example
 capt <- lapply(1 : dim(vals)[1], function(x){
-  tryCatch(t(run_model(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, 
+  tryCatch(t(run_model(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, 
                        startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
            error = function(e) NULL)}) # Ignore errors
 ## Turn into table
@@ -306,10 +313,9 @@ ggplot() +
                  mapping = aes(x = R))
 
 # Do the same as above for all countries
-
-# Remove "pb" if progress bar not desired
+## Remove "pb" if progress bar not desired
 {capt <- pbsapply(1 : length(use), function(y){lapply(1 : dim(vals)[1], function(x){
-  tryCatch(t(run_model(code = use[y], D = 6 / 365, A = 0.5, Lmax = 70, 
+  tryCatch(t(run_model(code = use[y], Dur = 6 / 365, A = 0.5, Lmax = 70, 
                        startpar = c(vals[x, 1], vals[x, 2]), prop = "loglin")),
            error = function(e) NULL)})}) # Ignore errors
 # Uncomment below if you want the script to announce when done

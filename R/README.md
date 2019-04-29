@@ -18,7 +18,7 @@ for a given country. To retrieve data for Italy we call
 ```R
 get_data(code = "IT")
 ```
-The script further contains plots of the serological data, the mortality data, and the contact matrices for the countries considered.
+The script further contains plots of the serological data, the mortality data, the population data, and the contact matrices for the countries considered.
 
 ## model.R
 The function `FOI` calculates the force of infection. It takes the following arguments
@@ -30,10 +30,9 @@ The function `FOI` calculates the force of infection. It takes the following arg
 | `rij` | Contact matrix | |
 | `muy` | Mortality | |
 | `N` | Population size at demographic equilibrium | |
-| `D` | Duration | |
+| `Dur` | Duration | |
 | `Lmax` | Life expectancy | |
 | `A` | Duration of maternal immunity | |
-| `plots` | Whether to produce Hens et al. style plots during the fitting process | Defaults to `FALSE` |
 | `startpar` | Starting parameters | |
 | `prop` | Desired proportionality function. Must be one of `"constant"`, `"loglin"`, `"ext_loglin"`, or `"logpoly"` | Defaults to `"constant"` |
 | print | Information on non-linear minimisation interations | Defaults to `0` (not printing) |
@@ -59,11 +58,11 @@ To fit the two models we are currently considering for Italy, run
 get_data(code = "IT")
 FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
     muy = predict(demfit, type = "response"),
-    N = sum(PS), D = 6 / 365, A = 0.5, Lmax = 70, 
+    N = sum(PS), Dur = 6 / 365, A = 0.5, Lmax = 70, 
     prop = "constant", startpar = 0.5)
 FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
     muy = predict(demfit, type = "response"),
-    N = sum(PS), D = 6 / 365, A = 0.5, Lmax = 70, 
+    N = sum(PS), Dur = 6 / 365, A = 0.5, Lmax = 70, 
     prop = "loglin", startpar = c(0.5, 0.3))
 ```
 
@@ -74,16 +73,16 @@ This script is used to examine the performance of the model fitting. The functio
 ### Minimisation 
 The function `check_conv` returns a table containing information regarding the minimisation performed in `FOI`. To obtain this information for the two models above, we use
 ```R
-check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
-check_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
+check_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+check_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "loglin", startpar = c(0.5, 0.3))
 ```
 A function providing a plot of the output of `check_conv` is also included and is called `plot_conv` and takes the same arguments as above, i.e.
 ```R
-plot_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+plot_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
 ```
 We have further included the function `rates_conv` which calculates the reproduction numbers for each of the values of the proportionality factor estimate obtained during the optimisation.
 ```R
-rates_conv(code = "IT", D = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
+rates_conv(code = "IT", Dur = 6 / 365, A = 0.5, Lmax = 70, prop = "constant", startpar = 0.5)
 ```
 ### Minimisation 
 We generate starting parameters to examine the difference between the starting value and the estimated value. For this we have created a function `run_model` which wraps around `FOI` and returns starting values, estimated values, reproduction numbers, and an indicator for the country.
@@ -91,7 +90,7 @@ We generate starting parameters to examine the difference between the starting v
 ## results.R
 This script contains a loop plotting the force of infection for each country. It currently takes the same time inputs for each country, i.e.:
 ```R
-D <- 6 / 365
+Dur <- 6 / 365
 A <- 0.5
 Lmax <- 70
 ```
