@@ -255,6 +255,30 @@ get_data <- function(code){
     contact_w <- SI
   }
   
+  if(code %in% c("IE", "SK")){
+    sero <- esen %>% 
+      filter(COUNTRY == countries$name[which(countries$code %in% code)])
+    # Contact matrix - same function used as that for Serbia
+    weigh <- function(x, dat, mat){
+      AGE <- droplevels(dat$age)
+      levels(AGE)[length(levels(AGE))] <- "0.5"
+      AGE <- gsub("[A-z]","", AGE)
+      AGE <- as.numeric(AGE)
+      AGE <- sort(AGE, index.return = TRUE)$`x`
+      dat <- dat[sort(AGE, index.return = TRUE)$ix, ]$values
+      return(mat[x, ] / dat[x])
+    }
+    load("S:/HelenJohnson/Herpes Zoster/Data/fumanelli.Rda")
+    mat <- fumanelli$IE$total
+    tmp <- lapply(1 : dim(mat)[1],
+                  function(x){weigh(x, 
+                                    dat = pop,
+                                    mat = mat)})
+    aa <- as.matrix(do.call(rbind, tmp))
+    dimnames(aa)[[1]] <- dimnames(aa)[[2]]
+    contact_w <- aa
+  }
+  
   contact_w[is.na(contact_w)] <- 0 # Replace missings with zeros
   sero <- sero[!is.na(sero$indic) & !is.na(sero$AGE), ]
   sero <- sero[order(sero$AGE), ]
@@ -301,7 +325,7 @@ lapply(seq_along(1 : length(use)), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/mortality.tif",
      width = 800, height = 600)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
 # TODO see if we can replace ^ with use somehow
 while(!is.null(dev.list())) dev.off()
 
@@ -334,7 +358,7 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/serology.tif",
      width = 800, height = 600)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
 
 ## Plot contact rates
@@ -368,7 +392,7 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/contact_matrices.tif",
      width = 800, height = 600)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
 
 ## Plot population
@@ -388,5 +412,5 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/population.tif",
      width = 800, height = 600)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IT, LU, NL, UK, RS, SI)
+grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
