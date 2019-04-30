@@ -333,6 +333,29 @@ grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
 # TODO see if we can replace ^ with use somehow
 while(!is.null(dev.list())) dev.off()
 
+## Plot deaths
+plot_death <- function(code, ...){
+  get_data(code)
+  ggplot(mapping = aes(x = age, y = rate), 
+         data = as.data.frame(cbind(age = 1 : length(popSize),
+                                    rate = demfit$model$nDeaths / popSize * 1e+05))) + 
+    labs(x = "Age", y = "Deaths per 100000", title = code) +
+    geom_line() +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+# Save list of plots for the countries in use
+plot_list <- lapply(use, plot_death)
+# Save the plots as their country codes
+lapply(seq_along(1 : length(use)), function(x){assign(use[x], plot_list[[x]], 
+                                                      envir = .GlobalEnv)})
+
+tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/deaths.tif",
+     width = 800, height = 600)
+# Current options based on availability of data
+grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
+while(!is.null(dev.list())) dev.off()
+
 ## Plot serological data
 plot_sero <- function(code, ...){
   get_data(code)
