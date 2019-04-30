@@ -56,7 +56,7 @@ countries <- tibble(code = c("AT", "BE", "BG", "CY", "CZ", "DE", "DK",
 get_data <- function(code){
   if(!(code %in% countries$code)){stop("Invalid value")}
   # Clear previous values
-  remove(sero, envir = .GlobalEnv)
+  remove(seroData, envir = .GlobalEnv)
   remove(contact_w, envir = .GlobalEnv)
   remove(demfit, envir = .GlobalEnv)
   remove(popSize, envir = .GlobalEnv)
@@ -130,10 +130,10 @@ get_data <- function(code){
     
     # Select seroprevalence data
     if(code == "UK"){ # UK is coded differently in this data set
-      sero <- esen %>% 
+      seroData <- esen %>% 
         filter(COUNTRY == code)
     } else {
-      sero <- esen %>% 
+      seroData <- esen %>% 
         filter(COUNTRY == countries$name[which(countries$code %in% code)])
     }
     
@@ -169,7 +169,7 @@ get_data <- function(code){
                           to = c((1 + 0.5)/2, seq(from = 1.5, to = 20.5, by = 1)))
     setDT(serb)
     setDT(age_rpl)
-    sero <- serb[age_rpl, on = c("AGE"), AGE := to]
+    seroData <- serb[age_rpl, on = c("AGE"), AGE := to]
     
     # Load contact matrix
     load("S:/HelenJohnson/Herpes Zoster/Data/prem.Rda")
@@ -231,7 +231,7 @@ get_data <- function(code){
     age_vals <- c(rep(tmp$age, tmp$zeros), rep(tmp$age, tmp$ones))
     indic <- c(rep(rep(0, length(tmp$age)), tmp$zeros), 
                rep(rep(1, length(tmp$age)), tmp$ones))
-    sero <- data.frame(COUNTRY = rep("Slovenia", length(indic)),
+    seroData <- data.frame(COUNTRY = rep("Slovenia", length(indic)),
                        AGE = age_vals,
                        indic)
     # Contact matrix - same function used as that for Serbia
@@ -256,7 +256,7 @@ get_data <- function(code){
   }
   
   if(code %in% c("IE", "SK")){
-    sero <- esen %>% 
+    seroData <- esen %>% 
       filter(COUNTRY == countries$name[which(countries$code %in% code)])
     # Contact matrix - same function used as that for Serbia
     weigh <- function(x, dat, mat){
@@ -284,8 +284,8 @@ get_data <- function(code){
   }
   
   contact_w[is.na(contact_w)] <- 0 # Replace missings with zeros
-  sero <- sero[!is.na(sero$indic) & !is.na(sero$AGE), ] # remove serology results where no indication or age specified
-  sero <- sero[order(sero$AGE), ] # order serology results by age
+  seroData <- seroData[!is.na(seroData$indic) & !is.na(seroData$AGE), ] # remove serology results where no indication or age specified
+  seroData <- seroData[order(seroData$AGE), ] # order serology results by age
   
   if(dim(pop)[1] == 0)
     warning("Population data for year 2003 not available from Eurostat database demo_pjan")
@@ -293,7 +293,7 @@ get_data <- function(code){
     warning("Mortality data for year 2003 not available from Eurostat database demo_magec")
   
   # Save objects
-  assign("sero", sero, envir = .GlobalEnv)
+  assign("seroData", seroData, envir = .GlobalEnv)
   assign("contact_w", contact_w, envir = .GlobalEnv)
   assign("demfit", demfit, envir = .GlobalEnv)
   assign("popSize", popSize, envir = .GlobalEnv)
@@ -310,7 +310,7 @@ plot_mort <- function(code, ...){
   vals <- plot(demfit) # Save output from demfit to plot in ggplot2 style
   ggplot(mapping = aes(x = x, y = fit), 
          data = as.data.frame(vals[[1]][c("x", "se", "fit")])
-         # Requried parts from vals saved as data frame
+         # Required parts from vals saved as data frame
          ) + 
     labs(x = "age", y = "f(age)", title = code) +
     geom_line() +
@@ -336,10 +336,10 @@ while(!is.null(dev.list())) dev.off()
 ## Plot serological data
 plot_sero <- function(code, ...){
   get_data(code)
-  sero <- sero[(sero$AGE > 0.5) & (sero$AGE < 80) &
-    (!is.na(sero$AGE)) & !is.na(sero$indic), ]
-  y <- sero$indic[order(sero$AGE)]
-  a <- sero$AGE[order(sero$AGE)]
+  seroData <- seroData[(seroData$AGE > 0.5) & (seroData$AGE < 80) &
+    (!is.na(seroData$AGE)) & !is.na(seroData$indic), ]
+  y <- seroData$indic[order(seroData$AGE)]
+  a <- seroData$AGE[order(seroData$AGE)]
   
   # Calculate seropositivity rates
   grid <- sort(unique(round(a)))

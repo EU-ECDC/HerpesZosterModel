@@ -10,6 +10,8 @@
 ## Initialisation ##
 ####################
 
+seroData <- sero # remove this when Maria has finished editing load_data
+
 ## Group fixed parameters 
 otherParams <- list(rij = contact_w,     # country-specific contact matrix
 					N <- sum(popSize),   # population size
@@ -34,7 +36,7 @@ dim(mcmc.out) <- c(nIter,(nEstimate+1))
 ######################
 
 param0 <- c(0.5, 0.3) # initial values for q parameters
-lnLike0 <- lnLike(param0, otherParams, seroData) # Initialise log-likelihood
+lnLike0 <- FoI(param0, otherParams, seroData)$lnLike # Initialise log-likelihood
 
 #####################################
 ## Estimate force of infection     ##
@@ -45,10 +47,9 @@ lnLike0 <- lnLike(param0, otherParams, seroData) # Initialise log-likelihood
 FoI <- function(fitParams, otherParams, seroData){
 
 # Prepare serological data
-age <- seroData$AGE
-y <- seroData$indic
-htab <- table(floor(age), y) # Table with seroprevalence for each single year of age
- 
+age     <- seroData$AGE
+obsData <- seroData$indic
+
 ## Generate transmission matrix
     if(propFac == "loglin"){ # First option (age-dependent susceptibility)
      
@@ -58,9 +59,9 @@ htab <- table(floor(age), y) # Table with seroprevalence for each single year of
 		}
 	  
 		# Create transmission matrix with log-linear parameters
-		q.f <- function(x, y){exp(qpar[1] + qpar[2] * x)}
-		qij <- outer(c(1 : Lmax), c(1 : Lmax), q.f)
-		bij <- 365 * qij * (rij)[1 : Lmax, 1 : Lmax]
+		qFunction <- function(x, obsData){exp(fitParams[1] + fitParams[2] * x)}
+		qij <- outer(c(1 : Lmax), c(1 : Lmax), qFunction)
+		bij <- 365 * qij * rij)[1 : Lmax, 1 : Lmax]
 		}
 	if(sum(is.na(bij)) > 0){warning("There are missing values in the transmission matrix beta_ij, which may break the tolerance parameter in the optimisation")}
 
@@ -107,16 +108,16 @@ htab <- table(floor(age), y) # Table with seroprevalence for each single year of
 	R0 <- max(as.double(R0vec)) # spectral radius
 	
 ## Estimate R
-    htab <- table(floor(age), y) # Table with seroprevalence for each single year of age
-	suscp <- htab[, 1] / rowSums(htab)
+    seroTab <- table(floor(age), obsData) # Table with seroprevalence for each single year of age
+	suscp <- seroTab[, 1] / rowSums(seroTab)
     # len included to reflect situations where NGM might be smaller than the size
-    # of htab
+    # of seroTab
     len <- min(dim(NGM)[1], length(suscp))
     Rvec <- NGM[1 : len, 1 : len] %*% diag(suscp[1 : len])
 	R <- max(as.double(Rvec)) # spectral radius
 	
 ## Calculate log-likelihood
-	ll[i] <- y[i] * log(prev[i] + 1e-8) + (1 - y[i]) * log(1 - prev[i] + 1e-8) # This is currently done piecewise. Could use htab for grouping.
+	ll[i] <- obsData[i] * log(prev[i] + 1e-8) + (1 - obsData[i]) * log(1 - prev[i] + 1e-8) # This is currently done piecewise. Could use seroTab for grouping.
     
 	return(list(lnLike = ll,     # log-likelihood
 			    R0 = R0,         # R0
