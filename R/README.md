@@ -56,11 +56,11 @@ It returns
 To fit the two models we are currently considering for Italy, run
 ```R
 get_data(code = "IT")
-FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
+FOI(age = seroData$AGE, y = seroData$indic, rij = contact_w,
     muy = predict(demfit, type = "response"),
     N = sum(PS), Dur = 6 / 365, A = 0.5, Lmax = 70, 
     prop = "constant", startpar = 0.5)
-FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
+FOI(age = seroData$AGE, y = seroData$indic, rij = contact_w,
     muy = predict(demfit, type = "response"),
     N = sum(PS), Dur = 6 / 365, A = 0.5, Lmax = 70, 
     prop = "loglin", startpar = c(0.5, 0.3))
