@@ -16,7 +16,7 @@ check_conv <- function(code, ...){
   get_data(code)
   # Capture printed output from nlm and put into table ---------------------------
   # Capture the output and make it lowercase for regex
-  tmp <- capture.output(res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
+  tmp <- capture.output(res <- FOI(age = seroData$AGE, y = seroData$indic, rij = contact_w,
                                    muy = predict(demfit, type = "response"),
                                    N = sum(popSize), ..., print = 2))
   tmp <- tolower(tmp)
@@ -137,8 +137,8 @@ rates_conv <- function(code, ...){
   tmp <- check_conv(code, ...) # This runs get_data so objects below exist
   # Calculations of rates - inner workings from the model
   ## Data
-  age <- sero$AGE
-  y <- sero$indic
+  age <- seroData$AGE
+  y <- seroData$indic
   rij <- contact_w
   muy <- predict(demfit, type = "response")
   N <- sum(popSize)
@@ -256,7 +256,7 @@ ggplot(data = dat,
 
 # Compare inputs and outputs (starting values and estimates)
 run_model <- function(code, ...){
-  res <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
+  res <- FOI(age = seroData$AGE, y = seroData$indic, rij = contact_w,
              muy = predict(demfit, type = "response"),
              N = sum(popSize), ...)
   if(length(res$inputs$start) == 1){ # One parameter

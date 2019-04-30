@@ -9,19 +9,19 @@ library(gridExtra)
 # Plot
 plot_results <- function(code, ...){
   get_data(code)
-  res1 <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
+  res1 <- FOI(age = seroData$AGE, y = seroData$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),
               N = sum(popSize), D = 6 / 365, A = 0.5, Lmax = 70, 
               prop = "constant", startpar = 0.5)
-  res2 <- FOI(age = sero$AGE, y = sero$indic, rij = contact_w,
+  res2 <- FOI(age = seroData$AGE, y = seroData$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),
               N = sum(popSize), D = 6 / 365, A = 0.5, Lmax = 70, 
               prop = "loglin", startpar = c(0.5, 0.3))
   
-  sero <- sero[(sero$AGE > 0.5) & (sero$AGE < 80) &
-                 (!is.na(sero$AGE)) & !is.na(sero$indic), ]
-  htab <- table(floor(sero$AGE[order(sero$AGE)]), 
-                sero$indic[order(sero$AGE)])
+  seroData <- seroData[(seroData$AGE > 0.5) & (seroData$AGE < 80) &
+                 (!is.na(seroData$AGE)) & !is.na(seroData$indic), ]
+  htab <- table(floor(seroData$AGE[order(seroData$AGE)]), 
+                seroData$indic[order(seroData$AGE)])
   
   ggplot() +
     geom_point(data = as.data.frame(cbind(age = as.numeric(row.names(htab)), 
@@ -31,11 +31,11 @@ plot_results <- function(code, ...){
                pch = 1) +
     geom_line(data = data.frame(age = 1 : length(res1$lambda), lambda = res1$lambda),
               mapping = aes(x = age, y = lambda), colour = 4) +
-    geom_line(data = data.frame(unique(cbind(sero$AGE, res1$pi))),
+    geom_line(data = data.frame(unique(cbind(seroData$AGE, res1$pi))),
               mapping = aes(x = X1, y = X2), colour = 4) +
     geom_line(data = data.frame(age = 1 : length(res2$lambda), lambda = res1$lambda),
               mapping = aes(x = age, y = lambda), colour = 1) +
-    geom_line(data = data.frame(unique(cbind(sero$AGE, res2$pi))),
+    geom_line(data = data.frame(unique(cbind(seroData$AGE, res2$pi))),
               mapping = aes(x = X1, y = X2), colour = 1) +
     annotate(geom = "text", x = res1$inputs$Lmax, y = 0.9, 
              label = "Constant", colour = 4) +
