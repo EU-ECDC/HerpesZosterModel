@@ -3,16 +3,17 @@ rm(list = ls())
 
 # Load required packages
 library(tidyverse)
-library(readxl)
-library(magrittr)
-library(data.table)
-library(socialmixr)
-library(eurostat)
-library(akima)
-library(gridExtra)
-library(ggplot2)
+library(readxl) # For loading data
+library(magrittr) # For data manip
+library(data.table) # For data manip
+library(socialmixr) # Data
+library(eurostat) # Data
+library(akima) # For interpolation
+library(gridExtra) # For plotting
+library(ggplot2) # For plotting
 theme_set(theme_classic() %+replace%
             theme(plot.title = element_text(hjust = 0.5))) # Ensure centred titles
+library(voxel) # For plotGAM
 
 # Load data
 ## ESEN2 Seroprevalence
@@ -109,11 +110,12 @@ get_data <- function(code){
   
   popAge <- sort(popAge) # Sort population age such that it is ascending
   mortAge <- sort(mortAge) # Sort mortality age such that it is ascending
+  mortAge <- mortAge[c(1 : len)]
   
   # Fit mortality model
   ## Mortality rates (offset by population size) are estimated through a Poisson GAM
   ## with a log link
-  demfit <- mgcv::gam(nDeaths ~ s(mortAge[c(1 : len)]), 
+  demfit <- mgcv::gam(nDeaths ~ s(mortAge), 
                       offset = log(popSize),
                       family = "poisson", link = "log")
   
@@ -307,16 +309,9 @@ use <- c(countries$code[countries$name %in%
 ## Plot mortality
 plot_mort <- function(code, ...){
   get_data(code)
-  vals <- plot(demfit) # Save output from demfit to plot in ggplot2 style
-  ggplot(mapping = aes(x = x, y = fit), 
-         data = as.data.frame(vals[[1]][c("x", "se", "fit")])
-         # Required parts from vals saved as data frame
-         ) + 
-    labs(x = "age", y = "f(age)", title = code) +
-    geom_line() +
-    geom_ribbon(aes(ymin = fit - se,
-                    ymax = fit + se),
-                alpha = 0.2)  + 
+  plotGAM(gamFit = demfit, smooth.cov = "mortAge") +
+    labs(title = code) +
+    theme_classic() + 
     theme(plot.title = element_text(hjust = 0.5))
 }
 
