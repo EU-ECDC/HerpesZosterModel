@@ -338,17 +338,14 @@ plot_sero <- function(code, ...){
   get_data(code)
   seroData <- seroData[(seroData$AGE > 0.5) & (seroData$AGE < 80) &
     (!is.na(seroData$AGE)) & !is.na(seroData$indic), ]
-  y <- seroData$indic[order(seroData$AGE)]
-  a <- seroData$AGE[order(seroData$AGE)]
+  # Table with seroprevalence for each single year of age
+  htab <- table(floor(seroData$AGE[order(seroData$AGE)]), 
+                seroData$indic[order(seroData$AGE)])
   
-  # Calculate seropositivity rates
-  grid <- sort(unique(round(a)))
-  neg <- table(y, round(a))[1, ]
-  pos <- table(y, round(a))[2, ]
-  tot <- neg + pos
-  
-  ggplot(data = as.data.frame(cbind(grid, neg, pos, tot)),
-         mapping = aes(x = grid, y = pos / tot, size = 0.02 * tot)) +
+  ggplot(data = as.data.frame(cbind(age = as.numeric(row.names(htab)), 
+                                    prop = htab[, 2] / rowSums(htab),
+                                    tot = rowSums(htab))),
+         mapping = aes(x = age, y = prop, size = tot)) +
     geom_point(pch = 1) + 
     labs(x = "age", y = "sero-prevalence", title = code) + 
     xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank())
