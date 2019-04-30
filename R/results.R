@@ -18,20 +18,16 @@ plot_results <- function(code, ...){
               N = sum(popSize), D = 6 / 365, A = 0.5, Lmax = 70, 
               prop = "loglin", startpar = c(0.5, 0.3))
   
-  subset <- (sero$AGE > 0.5) & (sero$AGE < 80) &
-    (!is.na(sero$AGE)) & !is.na(sero$indic)
-  sero <- sero[subset, ]
-  y <- sero$indic[order(sero$AGE)]
-  a <- sero$AGE[order(sero$AGE)]
-  
-  grid <- sort(unique(round(a)))
-  neg <- table(y, round(a))[1, ]
-  pos <- table(y, round(a))[2, ]
-  tot <- neg + pos
+  sero <- sero[(sero$AGE > 0.5) & (sero$AGE < 80) &
+                 (!is.na(sero$AGE)) & !is.na(sero$indic), ]
+  htab <- table(floor(sero$AGE[order(sero$AGE)]), 
+                sero$indic[order(sero$AGE)])
   
   ggplot() +
-    geom_point(data = as.data.frame(cbind(grid, neg, pos, tot)), 
-               mapping = aes(x = grid, y = pos / tot, size = 0.02 * tot),
+    geom_point(data = as.data.frame(cbind(age = as.numeric(row.names(htab)), 
+                                          prop = htab[, 2] / rowSums(htab),
+                                          tot = rowSums(htab))),
+               mapping = aes(x = age, y = prop, size = tot),
                pch = 1) +
     geom_line(data = data.frame(age = 1 : length(res1$lambda), lambda = res1$lambda),
               mapping = aes(x = age, y = lambda), colour = 4) +
