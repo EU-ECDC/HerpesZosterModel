@@ -1,21 +1,16 @@
-# Clear workspace
-#rm(list=ls())
-
-# Required packages
-#library(tidyverse)
-#library(socialmixr) # POLYMOD data
-#library(eurostat)   # EUROSTAT data
+library(mvtnorm)
+#library(coda)
 
 ####################
 ## Initialisation ##
 ####################
 
 			
-muy <- predict(demfit, type = "response")
-muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
-  My <- exp(- cumsum(muy)) # Type I mortality
-  L <- Lmax * mean(My) # Life expectancy
-  My <- My[1 : Lmax] # Ensure no longer than life expectancy
+#muy <- predict(demfit, type = "response")
+#muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
+#My <- exp(- cumsum(muy)) # Type I mortality
+#L <- Lmax * mean(My) # Life expectancy
+#My <- My[1 : Lmax] # Ensure no longer than life expectancy
  
  
 ## Group fixed parameters 
@@ -121,6 +116,8 @@ obsData <- seroData$indic
 				R = R,           # R
 				prev = prev,     # estimated seroprevalence
 				foi = foiiprev)) # estimated force of infection
+				
+
 }
 
 ###################
@@ -129,16 +126,16 @@ obsData <- seroData$indic
 
 ## Initialise MCMC params(
 nEstimate <- 1                  # no. of parameters to be estimated 
-nIter <- 1e3                    # number of iterations per chain
-prior <- c(0,0.1) #(c(0,1), c(-1,1)) # set uniform prior for q params
+nIter <- 2e3                    # number of iterations per chain
+prior <- c(0,0.2) #(c(0,1), c(-1,1)) # set uniform prior for q params
 dim(prior) <- c(2,nEstimate)
 prior <- t(prior) 
 scaleDisp <- 1e-3				# set scaling factor for dispersion           
 dispProp <-  diag(nEstimate) * scaleDisp * (prior[,2]-prior[,1]) # dispersal parameter
 acc <- 0                        # Initialise acceptance
 
-mcmc.out <- rep(NA, (nEstimate+1)*nIter)  # Initialise output
-dim(mcmc.out) <- c(nIter,(nEstimate+1))
+mcmcOutput <- rep(NA, (nEstimate+1)*nIter)  # Initialise output
+dim(mcmcOutput) <- c(nIter,(nEstimate+1))
 
 ######################
 ## Initialise chain ##
@@ -152,7 +149,7 @@ for(i in 1:nIter){
 
 	param1 <- drop(rmvnorm(1, mean=param0, sigma=dispProp))
 
-	## Check what this is doing? Bouncing? Yes
+	# Ensure that sampled parameters fall within prior. If not, then bounce off boundary
 	for(j in 1:length(prior[,1])){
 		param1[j] <- ifelse(param1[j] > prior[j,2], prior[j,2]-((param1[j]-prior[j,2])%%(prior[j,2]-prior[j,1])), ifelse(param1[j] < prior[j,1], prior[j,1]+((prior[j,1]-param1[j])%%(prior[j,2]-prior[j,1])), param1[j]))
 	}
@@ -178,27 +175,43 @@ for(i in 1:nIter){
 	acc.rate <-  (acc*100)/i
 	cat("\nAcceptance rate at jump", i, "is", round(acc.rate, digits=2) ,"%\n")
 
-	mcmc.out[i,1:nEstimate] <- param0
-	mcmc.out[i,(nEstimate+1)] <- lnLike0
+	mcmcOutput[i,1:nEstimate] <- param0
+	mcmcOutput[i,(nEstimate+1)] <- lnLike0
 }
 
 cat("\nAlgorithm required", (proc.time()[3]-ptm)/60, "minutes\nwith final acceptance rate", round(acc.rate, digits=2), "%\n")
 
-mcmc.out <- as.mcmc(mcmc.out) 
-HPV.res <- window(mcmc.out, start=1)
-plot(HPV.res)
-ESS <- effectiveSize(HPV.res)
-sampleOutput <- HPV.res [sample(nrow(HPV.res ), 25, replace=TRUE),1:29]
+mcmcOutput <- as.mcmc(mcmcOutput) 
+mcmcResults <- window(mcmcOutput, start=1) # 
+plot(mcmcResults)
+ESS <- effectiveSize(mcmcResults)
+sampleOutput <- mcmcResults [sample(nrow(mcmcResults), 25, replace=TRUE),1:29]
+
+sampleSize <- 250
+postSample <- sample_n(mcmcOutput, sampleSize, replace=TRUE) %>%
+				select(V1) %>%
+				rename(gamma0 = V1) %>%
+				mutate(q1 = exp(gamma0))
+
+## This needs to be re-coded so that FoI() is only run once! See lmap()			
+sampledR <- postSample %>% 
+			rowwise() %>% 
+			mutate(R = FoI(gamma0, otherParams, seroData)$R) %>%
+			mutate(R0 = FoI(gamma0, otherParams, seroData)$R0)
 
 
 
 
-
-
-
-
-
-
+got_chars %>% {
+  tibble(
+       name = map_chr(., "name"),
+    culture = map_chr(., "culture"),
+     gender = map_chr(., "gender"),       
+         id = map_int(., "id"),
+       born = map_chr(., "born"),
+      alive = map_lgl(., "alive")
+  )
+}
 
 
 
