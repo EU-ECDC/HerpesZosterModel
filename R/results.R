@@ -16,7 +16,7 @@ plot_results <- function(code, ...){
   res2 <- FOI(age = seroData$AGE, y = seroData$indic, rij = contact_w,
               muy = predict(demfit, type = "response"),
               N = sum(popSize), D = 6 / 365, A = 0.5, Lmax = 70, 
-              prop = "loglin", startpar = c(0.5, 0.3))
+              prop = "loglin", startpar = c(0.2, 0.3))
   
   seroData <- seroData[(seroData$AGE > 0.5) & (seroData$AGE < 80) &
                  (!is.na(seroData$AGE)) & !is.na(seroData$indic), ]
@@ -43,11 +43,15 @@ plot_results <- function(code, ...){
              label = "Log-linear") +
     annotate(geom = "text", x = 20, y = 0.7, 
              label = paste("Sum of abs diff:",
-                           sum(abs(res1$lambda[as.numeric(names(pos / tot))] - (pos / tot)))),
+                           round(sum(abs(res1$lambda[as.numeric(names(htab[, 2] / 
+                                                                  rowSums(htab)))] - 
+                                     (htab[, 2] / rowSums(htab)))), 4)),
              colour = 4) +
     annotate(geom = "text", x = 20, y = 0.6, 
              label = paste("Sum of abs diff:",
-                           sum(abs(res2$lambda[as.numeric(names(pos / tot))] - (pos / tot))))) +
+                           round(sum(abs(res2$lambda[as.numeric(names(htab[, 2] / 
+                                                                  rowSums(htab)))] - 
+                                     (htab[, 2] / rowSums(htab)))), 4))) +
     labs(title = code, x = "age", y = "") + 
     theme(legend.position = "none") +
     if(code == "RS"){
@@ -62,7 +66,8 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
 
 # Save plot
 tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
-     width = 1000, height = 3000)
+     width = 1400, height = 800)
 # Current options based on availability of data
 grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
+
