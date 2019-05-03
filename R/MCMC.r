@@ -202,30 +202,6 @@ sampledR <- postSample %>%
 
 
 
-got_chars %>% {
-  tibble(
-       name = map_chr(., "name"),
-    culture = map_chr(., "culture"),
-     gender = map_chr(., "gender"),       
-         id = map_int(., "id"),
-       born = map_chr(., "born"),
-      alive = map_lgl(., "alive")
-  )
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
