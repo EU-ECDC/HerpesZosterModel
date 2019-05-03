@@ -8,17 +8,17 @@ library(purrrlyr) # included in tidyverse?
 
 ## Helen, tidy this up!
 rij <- contact_w     # country-specific contact matrix
-					N <- sum(popSize)   # population size
-					D <- 6 / 365        # duration of infection?!
-					A <- 0.5            # duration of maternally-derived immunity
-					propFac <- "constant" # type of proportionality factor
-					Lmax <- 80 
-					
+N <- sum(popSize)   # population size
+D <- 6 / 365        # duration of infection?!
+A <- 0.5            # duration of maternally-derived immunity
+propFac <- "constant" # type of proportionality factor
+Lmax <- 80 
+
 muy <- predict(demfit, type = "response")
 muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
-  My <- exp(- cumsum(muy)) # Type I mortality
-  L <- Lmax * mean(My) # Life expectancy
-  My <- My[1 : Lmax] # Ensure no longer than life expectancy
+My <- exp(- cumsum(muy)) # Type I mortality
+L <- Lmax * mean(My) # Life expectancy
+My <- My[1 : Lmax] # Ensure no longer than life expectancy
  
  
 ## Group fixed parameters 
@@ -236,13 +236,6 @@ summaryFoI <- sampledFoI %>%
 				mutate(width = width1) %>%
 				mutate(point = "median")
 
-# Plot force of infection
-ggplot(summaryFoI, aes(x=age, y=midFoi)) +
-		geom_line(size=0.01, alpha=0.8) +
-		geom_ribbon(aes(ymin=lower, ymax=upper) ,fill="blue", alpha=0.2) +
-		ylim(0,1)
-   
-
 # Re-format prevalence estimates from sampled parameters
 sampledPrev <- map_dfc(sampledResults, extract, "prev")
 sampledPrev <- as_tibble(unique(cbind(seroData$AGE, sampledPrev))) %>% # combine with age data and reduce to unique values (i.e. not list for whole serosurvey sample)
@@ -261,14 +254,38 @@ summaryPrev <- sampledPrev %>%
 					upper = quantile(prev, probs = width1)) %>%
 				mutate(width = width1) %>%
 				mutate(point = "median")
-				
-# Plot prevalence
-ggplot(summaryPrev, aes(x=age, y=midPrev)) +
-		geom_line(size=0.01, alpha=0.8) +
-		geom_ribbon(aes(ymin=lower, ymax=upper) ,fill="blue", alpha=0.2) +
-		ylim(0,1)
-		
 
+# Plot force of infection and prevalence
+htab <- table(
+  floor(
+    seroData[(seroData$AGE > 0.5) & 
+               (seroData$AGE < 80) &
+               (!is.na(seroData$AGE)) & 
+               !is.na(seroData$indic), ]$AGE[order(seroData[(seroData$AGE > 0.5) & 
+                                                              (seroData$AGE < 80) &
+                                                              (!is.na(seroData$AGE)) & 
+                                                              !is.na(seroData$indic), ]$AGE)]),
+  seroData[(seroData$AGE > 0.5) &
+             (seroData$AGE < 80) &
+             (!is.na(seroData$AGE)) & 
+             !is.na(seroData$indic), ]$indic[order(seroData[(seroData$AGE > 0.5) & 
+                                                              (seroData$AGE < 80) &
+                                                              (!is.na(seroData$AGE)) & 
+                                                              !is.na(seroData$indic), ]$AGE)])
 
-
-
+(p <- ggplot() +
+    geom_line(data = summaryFoI, mapping = aes(x = age, y = midFoi),
+              size = 0.01, alpha = 0.8) +
+    geom_ribbon(data = summaryFoI, mapping = aes(x = age, ymin = lower, ymax = upper),
+                fill = "blue", alpha = 0.2) +
+    geom_line(data = summaryPrev, mapping = aes(x = age, y = midPrev),
+              size = 0.01, alpha = 0.8) +
+    geom_ribbon(data = summaryPrev, mapping = aes(x = age, ymin = lower, ymax = upper),
+                fill = "blue", alpha = 0.2) +
+    ylim(0, 1) +
+    geom_point(data = as.data.frame(cbind(age = as.numeric(row.names(htab)), 
+                                          prop = htab[, 2] / rowSums(htab),
+                                          tot = rowSums(htab))),
+               mapping = aes(x = age, y = prop, size = tot),
+               pch = 1) +
+    labs(y = "", size = "number of samples"))
