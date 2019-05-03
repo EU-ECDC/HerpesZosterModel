@@ -12,7 +12,8 @@ plot_results <- function(code, ...){
   source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/MCMC.r")
   p + title(code)
 }
-plot_list <- lapply(use, plot_results)
+library(parallel)
+plot_list <- mclapply(use, plot_results)
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
                                                 envir = .GlobalEnv)})
 

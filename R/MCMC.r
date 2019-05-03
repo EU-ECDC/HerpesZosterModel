@@ -12,7 +12,7 @@ N <- sum(popSize)   # population size
 D <- 6 / 365        # duration of infection?!
 A <- 0.5            # duration of maternally-derived immunity
 propFac <- "constant" # type of proportionality factor
-Lmax <- 80 
+Lmax <- 70 
 
 muy <- predict(demfit, type = "response")
 muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
@@ -27,7 +27,7 @@ otherParams <- list(rij = contact_w,     # country-specific contact matrix
 					D = 6 / 365,        # duration of infection?!
 					A = 0.5,            # duration of maternally-derived immunity
 					propFac = "constant", # type of proportionality factor
-					Lmax = 80           # life expectancy
+					Lmax = 70           # life expectancy
 					)
  
 #####################################
