@@ -1,6 +1,7 @@
 library(mvtnorm)
 library(coda)
 library(purrrlyr) # included in tidyverse?
+# No, not listed in https://github.com/tidyverse/tidyverse/blob/master/R/attach.R
 
 ####################
 ## Initialisation ##
@@ -34,6 +35,14 @@ FoI <- function(fitParams, otherParams, seroData){
 # Prepare serological data
 age     <- seroData$AGE
 obsData <- seroData$indic
+
+rij <- otherParams$rij
+N <- otherParams$N
+D <- otherParams$D
+A <- otherParams$A
+propFac <- otherParams$propFac
+Lmax <- otherParams$Lmax
+L <- Lmax * mean(exp(- cumsum(predict(demfit, type = "response")[1 : Lmax])))
 
 ## Generate transmission matrix
     if(propFac == "constant"){
