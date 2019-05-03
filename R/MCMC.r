@@ -6,12 +6,19 @@ library(purrrlyr) # included in tidyverse?
 ## Initialisation ##
 ####################
 
-			
-#muy <- predict(demfit, type = "response")
-#muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
-#My <- exp(- cumsum(muy)) # Type I mortality
-#L <- Lmax * mean(My) # Life expectancy
-#My <- My[1 : Lmax] # Ensure no longer than life expectancy
+## Helen, tidy this up!
+rij <- contact_w     # country-specific contact matrix
+					N <- sum(popSize)   # population size
+					D <- 6 / 365        # duration of infection?!
+					A <- 0.5            # duration of maternally-derived immunity
+					propFac <- "constant" # type of proportionality factor
+					Lmax <- 80 
+					
+muy <- predict(demfit, type = "response")
+muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
+  My <- exp(- cumsum(muy)) # Type I mortality
+  L <- Lmax * mean(My) # Life expectancy
+  My <- My[1 : Lmax] # Ensure no longer than life expectancy
  
  
 ## Group fixed parameters 
@@ -260,6 +267,8 @@ ggplot(summaryPrev, aes(x=age, y=midPrev)) +
 		geom_line(size=0.01, alpha=0.8) +
 		geom_ribbon(aes(ymin=lower, ymax=upper) ,fill="blue", alpha=0.2) +
 		ylim(0,1)
+		
+
 
 
 
