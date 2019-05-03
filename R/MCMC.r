@@ -200,6 +200,7 @@ postSample <- mcmcOutput %>% tail(-burnIn) %>%
 sampledResults <- as.vector(postSample$gamma0) %>%
                   map(FoI, otherParams, seroData)
 
+# R and R0 values from sampled parameters
 sampledR <- sampledResults %>% {
      				tibble(
 						R = map_dbl(., "R"),
@@ -207,25 +208,58 @@ sampledR <- sampledResults %>% {
 					   )
 					}
 
+# Re-format force of infection estimates from sampled parameters
 sampledFoI <- map_dfc(sampledResults, extract, "foi")
 sampledFoI <- as_tibble(sampledFoI) %>% # combine with age data and reduce to unique values (i.e. not list for whole serosurvey sample)
 					mutate(age = seq(0.5, Lmax-0.5)) %>% # check this. Should it indeed be mid-points?
 					gather(key=foiName, value=foi, -age) %>%
                     mutate(set = sapply(strsplit(foiName, split='i', fixed=TRUE),function(x) (x[2]))) %>% # derive set name
-					mutate(set = replace_na(0)) %>% # rename the first set as 0
-					mutate(set = set + 1) %>% # to avoid 0/1 confusion
+					mutate(set = replace(set, is.na(set), 0)) %>% # rename the first set as 0
+					mutate(set = as.integer(set) + 1) %>% # to avoid 0/1 confusion
 					select(set, age, foi) # re-order for clarity
 
-# Re-format prevalence from selected values
+width1 <- 0.95
+
+summaryFoI <- sampledFoI %>% 
+				group_by(age) %>% 
+					summarise(n = n(),
+						  midFoi = median(foi),
+						  lower = quantile(foi, probs = (1-width1)),
+						  upper = quantile(foi, probs = width1)) %>%
+				mutate(width = width1) %>%
+				mutate(point = "median")
+
+# Plot force of infection
+ggplot(summaryFoI, aes(x=age, y=midFoi)) +
+		geom_line(size=0.01, alpha=0.8) +
+		geom_ribbon(aes(ymin=lower, ymax=upper) ,fill="blue", alpha=0.2) +
+		ylim(0,1)
+   
+
+# Re-format prevalence estimates from sampled parameters
 sampledPrev <- map_dfc(sampledResults, extract, "prev")
 sampledPrev <- as_tibble(unique(cbind(seroData$AGE, sampledPrev))) %>% # combine with age data and reduce to unique values (i.e. not list for whole serosurvey sample)
 					gather(key=prevName, value=prev, -`seroData$AGE`) %>%
                     mutate(set = sapply(strsplit(prevName, split='v', fixed=TRUE),function(x) (x[2]))) %>% # derive set name
-					mutate(set = replace_na(0)) %>% # rename the first set as 0
-					mutate(set = set + 1) %>% # to avoid 0/1 confusion
+					mutate(set = replace(set, is.na(set), 0)) %>% # rename the first set as 0
+					mutate(set = as.integer(set) + 1) %>% # to avoid 0/1 confusion
 					rename(age = 'seroData$AGE') %>%
 					select(set, age, prev) # re-order for clarity
 
+summaryPrev <- sampledPrev %>% 
+				group_by(age) %>% 
+					summarise(n = n(),
+					midPrev = median(prev),
+					lower = quantile(prev, probs = (1-width1)),
+					upper = quantile(prev, probs = width1)) %>%
+				mutate(width = width1) %>%
+				mutate(point = "median")
+				
+# Plot prevalence
+ggplot(summaryPrev, aes(x=age, y=midPrev)) +
+		geom_line(size=0.01, alpha=0.8) +
+		geom_ribbon(aes(ymin=lower, ymax=upper) ,fill="blue", alpha=0.2) +
+		ylim(0,1)
 
 
 
