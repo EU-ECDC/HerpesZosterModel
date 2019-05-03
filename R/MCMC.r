@@ -198,12 +198,18 @@ postSample <- mcmcOutput %>% tail(-burnIn) %>%
 	
 # Generate results for posterior samples	
 sampledResults <- as.vector(postSample$gamma0) %>%
-          map(FoI, otherParams, seroData)
+                  map(FoI, otherParams, seroData)
 
+sampledR <- sampledResults %>% {
+     				tibble(
+						R = map_dbl(., "R"),
+					   R0 = map_dbl(., "R0")
+					   )
+					}
 
+sampledFoI <- t(map_dfc(sampledResults, extract, "foi"))
 
-
-
+sampledPrev <- t(map_dfc(sampledResults, extract, "prev"))
 
 
 
