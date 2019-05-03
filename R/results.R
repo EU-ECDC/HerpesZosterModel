@@ -10,7 +10,7 @@ library(gridExtra)
 plot_results <- function(code, ...){
   get_data(code)
   source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/MCMC.r")
-  p + title(code)
+  p + labs(title = code)
 }
 library(parallel)
 plot_list <- mclapply(use, plot_results)
