@@ -207,14 +207,24 @@ sampledR <- sampledResults %>% {
 					   )
 					}
 
-sampledFoI <- t(map_dfc(sampledResults, extract, "foi"))
+sampledFoI <- map_dfc(sampledResults, extract, "foi")
+sampledFoI <- as_tibble(sampledFoI) %>% # combine with age data and reduce to unique values (i.e. not list for whole serosurvey sample)
+					mutate(age = seq(0.5, Lmax-0.5)) %>% # check this. Should it indeed be mid-points?
+					gather(key=foiName, value=foi, -age) %>%
+                    mutate(set = sapply(strsplit(foiName, split='i', fixed=TRUE),function(x) (x[2]))) %>% # derive set name
+					mutate(set = replace_na(0)) %>% # rename the first set as 0
+					mutate(set = set + 1) %>% # to avoid 0/1 confusion
+					select(set, age, foi) # re-order for clarity
 
-sampledPrev <- t(map_dfc(sampledResults, extract, "prev"))
-
-
-
-
-
+# Re-format prevalence from selected values
+sampledPrev <- map_dfc(sampledResults, extract, "prev")
+sampledPrev <- as_tibble(unique(cbind(seroData$AGE, sampledPrev))) %>% # combine with age data and reduce to unique values (i.e. not list for whole serosurvey sample)
+					gather(key=prevName, value=prev, -`seroData$AGE`) %>%
+                    mutate(set = sapply(strsplit(prevName, split='v', fixed=TRUE),function(x) (x[2]))) %>% # derive set name
+					mutate(set = replace_na(0)) %>% # rename the first set as 0
+					mutate(set = set + 1) %>% # to avoid 0/1 confusion
+					rename(age = 'seroData$AGE') %>%
+					select(set, age, prev) # re-order for clarity
 
 
 
