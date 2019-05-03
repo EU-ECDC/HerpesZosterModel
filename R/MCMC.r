@@ -1,5 +1,6 @@
 library(mvtnorm)
-#library(coda)
+library(coda)
+library(purrrlyr) # included in tidyverse?
 
 ####################
 ## Initialisation ##
@@ -185,20 +186,19 @@ mcmcOutput <- as.mcmc(mcmcOutput)
 mcmcResults <- window(mcmcOutput, start=1) # 
 plot(mcmcResults)
 ESS <- effectiveSize(mcmcResults)
-sampleOutput <- mcmcResults [sample(nrow(mcmcResults), 25, replace=TRUE),1:29]
 
+mcmcOutput <- as_tibble(mcmcOutput)
+burnIn <- 100
 sampleSize <- 250
-postSample <- sample_n(mcmcOutput, sampleSize, replace=TRUE) %>%
+postSample <- mcmcOutput %>% tail(-burnIn) %>%
+				sample_n(sampleSize, replace=TRUE) %>%
 				select(V1) %>%
 				rename(gamma0 = V1) %>%
 				mutate(q1 = exp(gamma0))
-
-## This needs to be re-coded so that FoI() is only run once! See lmap()			
-sampledR <- postSample %>% 
-			rowwise() %>% 
-			mutate(R = FoI(gamma0, otherParams, seroData)$R) %>%
-			mutate(R0 = FoI(gamma0, otherParams, seroData)$R0)
-
+	
+# Generate results for posterior samples	
+sampledResults <- as.vector(postSample$gamma0) %>%
+          map(FoI, otherParams, seroData)
 
 
 

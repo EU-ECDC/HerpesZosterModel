@@ -1,3 +1,22 @@
+## Plotting posteriors
+test1 <- mcmcOutput %>% filter(V1 < mean(V1)) %>%
+						 top_n(800) %>%
+						 mutate(country = "BE")
+						 
+test2 <- mcmcOutput %>% filter(V1 >= mean(V1)) %>%
+						 top_n(800) %>%
+						 mutate(country = "FR")
+ 
+test <- bind_rows(test1, test2) %>%
+		rename(gamma0 = V1) %>%
+		select(-V2)
+		
+# Plot density for comparison
+ggplot(test, aes(x = gamma0, y = country)) + geom_halfeyeh(.width = c(0.5, 0.95))
+ 
+ 
+ ## Plotting prevalence
+ 
  results <- FoI(0.141,otherParams,seroData)$prev
 
  ggplot() +
