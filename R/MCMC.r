@@ -2,6 +2,15 @@ library(mvtnorm)
 library(coda)
 library(purrrlyr) # included in tidyverse?
 
+
+myColours <- c("26 107 133", "241 214 118", "168 45 23")
+ECDCcol <- sapply(strsplit(myColours, " "), function(x)
+    rgb(x[1], x[2], x[3], maxColorValue=255))  # convert to hexadecimal
+
+colours1 <- colorRampPalette(ECDCcol)(5)
+
+
+
 ####################
 ## Initialisation ##
 ####################
@@ -267,6 +276,9 @@ sampledR <- sampledResults %>% {
 					   R0 = map_dbl(., "R0")
 					   )
 					}
+										
+sampledR <- bind_cols(postSample, sampledR)
+sampledR %>% filter(R >= 0.95 & R < 1.05) # filter for parameter sets close to endmeic eqm
 
 # Re-format force of infection estimates from sampled parameters
 sampledFoI <- map_dfc(sampledResults, extract, "foi")
@@ -334,7 +346,7 @@ htab <- table(
     geom_line(data = summaryPrev, mapping = aes(x = age, y = midPrev),
               size = 0.01, alpha = 0.8) +
     geom_ribbon(data = summaryPrev, mapping = aes(x = age, ymin = lower, ymax = upper),
-                fill = "blue", alpha = 0.2) +
+                fill = "dark green", alpha = 0.3) +
     ylim(0, 1) +
     geom_point(data = as.data.frame(cbind(age = as.numeric(row.names(htab)), 
                                           prop = htab[, 2] / rowSums(htab),
