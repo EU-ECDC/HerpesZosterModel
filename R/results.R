@@ -44,3 +44,39 @@ tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
 grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
 while(!is.null(dev.list())) dev.off()
 
+# Plot rates
+# First combine the values for all the countries
+tmp <- sapply(use, function(code){
+  get_results(code)
+  return(as.data.frame(cbind(sampledR, ID = rep(code, dim(sampledR)[1]))))})
+# Rework data into a format that is useful for plotting
+tmp <- do.call(rbind, split(tmp, rep(1:ncol(tmp), each = nrow(tmp))))
+library(tidyr)
+dat <- unnest(as.data.frame(tmp))
+colnames(dat) <- c("R", "R0", "country")
+
+
+library(tidybayes)
+library(joy)
+# Save plots
+tiff("S:/HelenJohnson/Herpes Zoster/Figures/rates_R.tif",
+     width = 800, height = 1700)
+if(FALSE){
+  # Currently broken
+  as.mcmc.list(lapply(dat, mcmc)) %>% # R
+    spread_draws(R[country]) %>%
+    ggplot(aes(x = country, y = R)) +
+    geom_halfeyeh() 
+}
+dat %>% # R
+  ggplot(aes(x = R, y = country, height = ..density..)) +
+  geom_joy(scale = 0.85)
+while(!is.null(dev.list())) dev.off()
+
+tiff("S:/HelenJohnson/Herpes Zoster/Figures/rates_R0.tif",
+     width = 800, height = 1700)
+dat %>% # R0
+  ggplot(aes(x = R0, y = country, height = ..density..)) +
+  geom_joy(scale = 0.85)
+while(!is.null(dev.list())) dev.off()
+
