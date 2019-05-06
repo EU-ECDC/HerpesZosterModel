@@ -11,7 +11,7 @@ rij <- contact_w     # country-specific contact matrix
 N <- sum(popSize)   # population size
 D <- 6 / 365        # duration of infection?!
 A <- 0.5            # duration of maternally-derived immunity
-propFac <- "constant" # type of proportionality factor
+propFac <- "loglin" # type of proportionality factor
 Lmax <- 70 
 
 muy <- predict(demfit, type = "response")
@@ -43,16 +43,16 @@ age     <- seroData$AGE
 obsData <- seroData$indic
 
 ## Generate transmission matrix
-    if(propFac == "constant"){
-      if(length(param0) != 1){
-        stop("length of param0 does not fit choice of constant proportionality factor")
-      }
-      # Create transmission matrix with constant parameter
-      bij <- 365 * fitParams[1] * (rij)[1 : Lmax, 1 : Lmax]
+	if(propFac == "constant"){
+		if(length(param0) != 1){
+			stop("length of param0 does not fit choice of constant proportionality factor")
+		}
+		# Create transmission matrix with constant parameter
+		qij <- exp(fitParams[1])
+		bij <- 365 * qij * (rij)[1 : Lmax, 1 : Lmax]
     }
 	
     if(propFac == "loglin"){ # First option (age-dependent susceptibility)
-     
 		# Check start parameters fit with prop. factor type
 		if(length(param0) != 2){
 			stop("length of param0 does not fit choice of proportionality factor")
@@ -62,7 +62,18 @@ obsData <- seroData$indic
 		qFunction <- function(x, obsData){exp(fitParams[1] + (fitParams[2] * x))}
 		qij <- outer(c(1 : Lmax), c(1 : Lmax), qFunction)
 		bij <- 365 * qij * rij[1 : Lmax, 1 : Lmax]
-		}
+	}
+	
+    if(prop_fac == "extloglin"){
+      if(length(param0) != 3){
+        stop("length of param0 does not fit choice of proportionality factor")
+      }
+      # Create transmission matrix with extended log-linear parameters
+      q.f <- function(x, y){exp(fitParams[1] + fitParams[2] * x + fitParams[3] * y)}
+      qij <- outer(c(1 : Lmax), c(1 : Lmax), q.f)
+      bij <- 365 * qij * (rij)[1 : Lmax, 1 : Lmax]
+    }
+	
 	if(sum(is.na(bij)) > 0){warning("There are missing values in the transmission matrix beta_ij, which may break the tolerance parameter in the optimisation")}
 
 ## Initialise for iterative estimation of force of infection
@@ -132,14 +143,21 @@ obsData <- seroData$indic
 ## MCMC function ##
 ###################
 
-## Initialise MCMC params(
-nEstimate <- 1                  # no. of parameters to be estimated 
-nIter <- 2e3                    # number of iterations per chain
-prior <- c(0,0.2) #(c(0,1), c(-1,1)) # set uniform prior for q params
-dim(prior) <- c(2,nEstimate)
+## Initialise MCMC params
+nEstimate <- case_when(
+				propFac == "constant" ~ 1,
+				propFac == "loglin" ~ 2,
+				propFac == "extloglin" ~ 3,) # no. of parameters to be estimated 
+nIter <- 1e3                    # number of iterations per chain
+
+prior <- c(-4, -3, 0.02, 0.05, -0.05 ,0) # set uniform prior for q params
+#prior <- c(-5, 5)
+dim(prior) <- c(2, nEstimate)
 prior <- t(prior) 
+
 scaleDisp <- 1e-3				# set scaling factor for dispersion           
 dispProp <-  diag(nEstimate) * scaleDisp * (prior[,2]-prior[,1]) # dispersal parameter
+
 acc <- 0                        # Initialise acceptance
 
 mcmcOutput <- rep(NA, (nEstimate+1)*nIter)  # Initialise output
@@ -148,8 +166,8 @@ dim(mcmcOutput) <- c(nIter,(nEstimate+1))
 ######################
 ## Initialise chain ##
 ######################
-param0 <- 0.05
-#param0 <- c(0.5, 0.5) # initial values for q parameters
+#param0 <- -0.5
+param0 <- c(-4.5, 0.03, 0) # initial values for q parameters
 lnLike0 <- FoI(param0, otherParams, seroData)$lnLike # Initialise log-likelihood
 
 ptm <- proc.time()[3] # set clock
@@ -194,9 +212,13 @@ mcmcResults <- window(mcmcOutput, start=1) #
 plot(mcmcResults)
 ESS <- effectiveSize(mcmcResults)
 
+AIC <- (2*nEstimate) + max(mcmcOutput[,ncol(mcmcOutput)]) # Akaike information criterion
+
 mcmcOutput <- as_tibble(mcmcOutput)
 burnIn <- 100
 sampleSize <- 250
+
+if(propFac == "constant"){
 postSample <- mcmcOutput %>% tail(-burnIn) %>%
 				sample_n(sampleSize, replace=TRUE) %>%
 				select(V1) %>%
@@ -206,6 +228,37 @@ postSample <- mcmcOutput %>% tail(-burnIn) %>%
 # Generate results for posterior samples	
 sampledResults <- as.vector(postSample$gamma0) %>%
                   map(FoI, otherParams, seroData)
+				  
+}
+
+if(propFac == "loglin"){
+postSample <- mcmcOutput %>% tail(-burnIn) %>%
+				sample_n(sampleSize, replace=TRUE) %>%
+				select(V1, V2) %>%
+				rename(gamma0 = V1) %>%
+				rename(gamma1 = V2) %>%
+				mutate(q1 = exp(gamma0 + (gamma1 * mean(seq(0.5, Lmax-0.5)))))
+	
+# Generate results for posterior samples	
+sampledResults <- mapply(c, postSample$gamma0, postSample$gamma1, SIMPLIFY = FALSE) %>% # list of pairs (gamma0, gamma1)
+                  map(FoI, otherParams, seroData)
+				  
+}
+
+if(propFac == "extloglin"){
+postSample <- mcmcOutput %>% tail(-burnIn) %>%
+				sample_n(sampleSize, replace=TRUE) %>%
+				select(V1, V2, V3) %>%
+				rename(gamma0 = V1) %>%
+				rename(gamma1 = V2) %>%
+				rename(gamma2 = V3) %>%
+				mutate(q1 = exp(gamma0 + (gamma1 * mean(seq(0.5, Lmax-0.5))) + (gamma2 * mean(seq(0.5, Lmax-0.5)))))
+	
+# Generate results for posterior samples	
+sampledResults <- mapply(c, postSample$gamma0, postSample$gamma1, postSample$gamma2, SIMPLIFY = FALSE) %>% # list of pairs (gamma0, gamma1, gamma2)
+                  map(FoI, otherParams, seroData)
+				  
+}
 
 # R and R0 values from sampled parameters
 sampledR <- sampledResults %>% {
