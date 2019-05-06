@@ -11,6 +11,7 @@ library(eurostat) # Data
 library(akima) # For interpolation
 library(gridExtra) # For plotting
 library(ggplot2) # For plotting
+library(lemon) # For shared legend
 theme_set(theme_classic())
 library(voxel) # For plotGAM
 
@@ -310,7 +311,7 @@ plot_mort <- function(code, ...){
   get_data(code)
   plotGAM(gamFit = demfit, smooth.cov = "mortAge") +
     labs(title = code, y = "Predicted deaths", x = "Age (smoothed)") +
-    theme(plot.title = element_text(hjust = 0.5),
+    theme_classic() + theme(plot.title = element_text(hjust = 0.5),
           title = element_text(family = "serif"))
 }
 
@@ -381,9 +382,10 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
                                                 envir = .GlobalEnv)})
 
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/serology.tif",
-     width = 800, height = 600)
+     width = 800, height = 800)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
+grid_arrange_shared_legend(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI,
+                           ncol = 3, nrow = 4)
 while(!is.null(dev.list())) dev.off()
 
 ## Plot contact rates
@@ -394,8 +396,10 @@ plot_mat <- function(code, ...){
   p <- ggplot(data = tmp, aes_string(x = names(tmp)[1], y = names(tmp)[2], 
                                 fill = names(tmp)[3])) + 
     geom_tile() + 
-    scale_fill_viridis_c(direction = - 1, option = "E", ...) +
-    labs(x = "", y = "", title = code) +
+    scale_fill_viridis_c(direction = - 1, option = "E", 
+                         guide = guide_legend(label.theme = element_text(angle = 90)),
+                         ...) +
+    labs(x = "", y = "", title = code, fill = "Rate") +
     theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
           title = element_text(family = "serif")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -417,9 +421,10 @@ plot_list <- lapply(use, plot_mat)
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
                                                 envir = .GlobalEnv)})
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/contact_matrices.tif",
-     width = 800, height = 600)
+     width = 900, height = 900)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
+grid_arrange_shared_legend(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI,
+                           ncol = 4, nrow = 3)
 while(!is.null(dev.list())) dev.off()
 
 ## Plot population
