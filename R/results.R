@@ -10,11 +10,31 @@ get_results <- function(code, ...){
   get_data(code)
   #source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/MCMC.r")
   source("MCMC.r") # Use the local version
+  return(list(code = code,
+              dispProp = dispProp,
+              mcmcOutput = mcmcOutput,
+              otherParams = otherParams,
+              postSample = postSample,
+              prior = prior,
+              sampledFoI = sampledFoI,
+              sampledPrev = sampledPrev,
+              sampledR = sampledR,
+              summaryFoI = summaryFoI,
+              summaryPrev = summaryPrev,
+              acc.rate = acc.rate,
+              ESS =	ESS,
+              mcmcResults = mcmcResults,
+              nIter =	nIter,
+              param0 = param0,
+              param1 = param1,
+              propFac =	propFac,
+              scaleDisp	= scaleDisp))
 }
 # TODO optimise such that results are only retrieved once - save in a list perhaps
 # Should set a seed also?
 
 library(parallel)
+res <- mclapply(use, get_results)
 
 plot_list <- mclapply(use, function(code){get_results(code)
   ggplot() +
