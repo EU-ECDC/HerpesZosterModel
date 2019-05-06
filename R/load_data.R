@@ -366,7 +366,10 @@ plot_sero <- function(code, ...){
          mapping = aes(x = age, y = prop, size = tot)) +
     geom_point(pch = 1) + 
     labs(x = "age", y = "sero-prevalence", title = code) + 
-    xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank())
+    xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank()) +
+    scale_size_continuous(limits = c(1, 500),
+                          breaks=c(50, 100, 150, 200,
+                                   250, 300, 400, 500))
 }
 
 # Save list of plots and assign to the environment
