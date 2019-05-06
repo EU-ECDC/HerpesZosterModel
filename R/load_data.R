@@ -11,8 +11,7 @@ library(eurostat) # Data
 library(akima) # For interpolation
 library(gridExtra) # For plotting
 library(ggplot2) # For plotting
-theme_set(theme_classic() %+replace%
-            theme(plot.title = element_text(hjust = 0.5))) # Ensure centred titles
+theme_set(theme_classic())
 library(voxel) # For plotGAM
 
 # Load data
@@ -179,7 +178,7 @@ get_data <- function(code){
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
-      AGE <- gsub("[A-z]","", AGE)
+      AGE <- gsub("[A-z]", "", AGE)
       AGE <- as.numeric(AGE)
       # Ensure both follow same age pattern
       AGE <- sort(AGE, index.return = TRUE)$`x`
@@ -240,7 +239,7 @@ get_data <- function(code){
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
-      AGE <- gsub("[A-z]","", AGE)
+      AGE <- gsub("[A-z]", "", AGE)
       AGE <- as.numeric(AGE)
       AGE <- sort(AGE, index.return = TRUE)$`x`
       dat <- dat[sort(AGE, index.return = TRUE)$ix, ]$values
@@ -264,7 +263,7 @@ get_data <- function(code){
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
-      AGE <- gsub("[A-z]","", AGE)
+      AGE <- gsub("[A-z]", "", AGE)
       AGE <- as.numeric(AGE)
       AGE <- sort(AGE, index.return = TRUE)$`x`
       dat <- dat[sort(AGE, index.return = TRUE)$ix, ]$values
@@ -310,9 +309,9 @@ use <- c(countries$code[countries$name %in%
 plot_mort <- function(code, ...){
   get_data(code)
   plotGAM(gamFit = demfit, smooth.cov = "mortAge") +
-    labs(title = code) +
-    theme_classic() + 
-    theme(plot.title = element_text(hjust = 0.5))
+    labs(title = code, y = "Predicted deaths", x = "Age (smoothed)") +
+    theme(plot.title = element_text(hjust = 0.5),
+          title = element_text(family = "serif"))
 }
 
 # Save list of plots for the countries in use
@@ -334,9 +333,10 @@ plot_death <- function(code, ...){
   ggplot(mapping = aes(x = age, y = rate), 
          data = as.data.frame(cbind(age = 1 : length(popSize),
                                     rate = demfit$model$nDeaths / popSize * 1e+05))) + 
-    labs(x = "Age", y = "Deaths per 100000", title = code) +
+    labs(x = "Age", y = "Deaths per 100,000", title = code) +
     geom_line() +
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+          title = element_text(family = "serif"))
 }
 
 # Save list of plots for the countries in use
@@ -365,11 +365,14 @@ plot_sero <- function(code, ...){
                                     tot = rowSums(htab))),
          mapping = aes(x = age, y = prop, size = tot)) +
     geom_point(pch = 1) + 
-    labs(x = "age", y = "sero-prevalence", title = code) + 
-    xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank()) +
+    labs(x = "Age", y = "Sero-prevalence", title = code) + 
+    xlim(0, 72) + ylim(- 0.1, 1) + 
+    theme(legend.title = element_blank()) +
     scale_size_continuous(limits = c(1, 500),
                           breaks=c(50, 100, 150, 200,
-                                   250, 300, 400, 500))
+                                   250, 300, 400, 500)) +
+    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+          title = element_text(family = "serif"))
 }
 
 # Save list of plots and assign to the environment
@@ -393,6 +396,8 @@ plot_mat <- function(code, ...){
     geom_tile() + 
     scale_fill_viridis_c(direction = - 1, option = "E", ...) +
     labs(x = "", y = "", title = code) +
+    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+          title = element_text(family = "serif")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
     # Rotate x-axis labels
     if(is.factor(tmp[, 1])){ # Add spacing
@@ -425,7 +430,9 @@ plot_pop <- function(code, ...){
                        y = popSize)) +
     geom_col(width = 1) +
     labs(y = "Population", x = "Age", title = code) +
-    coord_flip() 
+    coord_flip() +
+    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+                       title = element_text(family = "serif"))
 }
 plot_list <- lapply(use, plot_pop)
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
