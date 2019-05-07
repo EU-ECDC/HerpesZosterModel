@@ -311,7 +311,8 @@ plot_mort <- function(code, ...){
   get_data(code)
   plotGAM(gamFit = demfit, smooth.cov = "mortAge") +
     labs(title = code, y = "Predicted deaths", x = "Age (smoothed)") +
-    theme_classic() + theme(plot.title = element_text(hjust = 0.5),
+    theme_classic() + theme(plot.title = element_text(hjust = 1,
+                                                      margin = margin(t = 10, b = - 20)),
           title = element_text(family = "serif"))
 }
 
@@ -353,7 +354,8 @@ plot_death <- function(code, ...){
                                     rate = demfit$model$nDeaths / popSize * 1e+05))) + 
     labs(x = "Age", y = "Deaths per 100,000", title = code) +
     geom_line() +
-    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+    theme(plot.title = element_text(hjust = 1, # Ensure right-aligned titles
+                                    margin = margin(t = 10, b = - 20)), # Title in panel
           title = element_text(family = "serif")) +
     scale_y_continuous(breaks = seq(5000, 5e04, 5000),
                        labels = seq(5000, 5e04, 5000)) + 
@@ -396,7 +398,8 @@ plot_sero <- function(code, ...){
     scale_size_continuous(limits = c(1, 500),
                           breaks=c(50, 100, 150, 200,
                                    250, 300, 400, 500)) +
-    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+    theme(plot.title = element_text(hjust = 1,
+                                    margin = margin(t = 10, b = - 20)),
           title = element_text(family = "serif"))
 }
 
@@ -436,7 +439,8 @@ plot_mat <- function(code, ...){
                          guide = guide_legend(label.theme = element_text(angle = 90)),
                          ...) +
     labs(x = "", y = "", title = code, fill = "Rate") +
-    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+    theme(plot.title = element_text(hjust = 1,
+                                    margin = margin(t = 10, b = - 20)),
           title = element_text(family = "serif")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
     xlim(0, 100) + ylim(0, 100)
@@ -467,7 +471,8 @@ plot_pop <- function(code, ...){
                        labels = seq(2500, 3e05, 5000)) +
     ylim(0, 3e05) +
     coord_flip() +
-    theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
+    theme(plot.title = element_text(hjust = 1,
+                                    margin = margin(t = 10, b = - 20)),
                        title = element_text(family = "serif"))
 }
 plot_list <- lapply(use, plot_pop)
