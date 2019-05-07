@@ -321,10 +321,27 @@ plot_list <- lapply(use, plot_mort)
 lapply(seq_along(1 : length(use)), function(x){assign(use[x], plot_list[[x]], 
                                                       envir = .GlobalEnv)})
 
+no_axes <- theme(#axis.line = element_blank(),
+                 axis.text.x = element_blank(),
+                 axis.text.y = element_blank(),
+                 #axis.ticks = element_blank(),
+                 axis.title.x = element_blank(),
+                 axis.title.y = element_blank())
+
+no_x_axis <- theme(axis.text.x = element_blank(),
+                   axis.title.x = element_blank())
+
+no_y_axis <- theme(axis.text.y = element_blank(),
+                   axis.title.y = element_blank())
+
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/mortality.tif",
      width = 800, height = 600)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
+grid.arrange(BE + no_x_axis, FI + no_axes, DE + no_axes, 
+             IE + no_x_axis, IT + no_axes, LU + no_axes,
+             NL + no_x_axis, SK + no_axes, UK + no_axes, 
+             RS, SI + no_y_axis,
+             ncol = 3, nrow = 4)
 # TODO see if we can replace ^ with use somehow
 while(!is.null(dev.list())) dev.off()
 
@@ -349,7 +366,11 @@ lapply(seq_along(1 : length(use)), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/deaths.tif",
      width = 800, height = 600)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
+grid.arrange(BE + no_x_axis, FI + no_axes, DE + no_axes, 
+             IE + no_x_axis, IT + no_axes, LU + no_axes,
+             NL + no_x_axis, SK + no_axes, UK + no_axes, 
+             RS, SI + no_y_axis,
+             ncol = 3, nrow = 4)
 while(!is.null(dev.list())) dev.off()
 
 ## Plot serological data
@@ -384,7 +405,10 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/serology.tif",
      width = 800, height = 800)
 # Current options based on availability of data
-grid_arrange_shared_legend(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI,
+grid_arrange_shared_legend(BE + no_x_axis, FI + no_axes, DE + no_axes, 
+                           IE + no_x_axis, IT + no_axes, LU + no_axes,
+                           NL + no_x_axis, SK + no_axes, UK + no_axes, 
+                           RS, SI + no_y_axis,
                            ncol = 3, nrow = 4)
 while(!is.null(dev.list())) dev.off()
 
@@ -393,7 +417,16 @@ while(!is.null(dev.list())) dev.off()
 plot_mat <- function(code, ...){
   get_data(code)
   tmp <- melt(contact_w)
-  p <- ggplot(data = tmp, aes_string(x = names(tmp)[1], y = names(tmp)[2], 
+  # Relabel socialmixr for panel plot
+  if(is.factor(tmp$age.group)){
+    levels(tmp$age.group) <- 1 : length(levels(tmp$age.group))
+    tmp$age.group <- as.numeric(levels(tmp$age.group))[tmp$age.group]
+  }
+  if(is.factor(tmp$contact.age.group)){
+    levels(tmp$contact.age.group) <- 1 : length(levels(tmp$contact.age.group))
+    tmp$contact.age.group <- as.numeric(levels(tmp$contact.age.group))[tmp$contact.age.group]
+  }
+  ggplot(data = tmp, aes_string(x = names(tmp)[1], y = names(tmp)[2], 
                                 fill = names(tmp)[3])) + 
     geom_tile() + 
     scale_fill_viridis_c(direction = - 1, option = "E", 
@@ -403,28 +436,20 @@ plot_mat <- function(code, ...){
     theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
           title = element_text(family = "serif")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    # Rotate x-axis labels
-    if(is.factor(tmp[, 1])){ # Add spacing
-      scale_x_discrete(breaks = levels(tmp[, 1])[c(TRUE, rep(FALSE, 9))])
-    } else {
-      NULL
-    }
-  p <- p +
-    if(is.factor(tmp[, 2])){ # Add spacing
-      scale_y_discrete(breaks = levels(tmp[, 2])[c(TRUE, rep(FALSE, 9))])
-    } else {
-      NULL
-    }
-  return(p)
+    xlim(0, 100) + ylim(0, 100)
 }
 plot_list <- lapply(use, plot_mat)
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
                                                 envir = .GlobalEnv)})
+
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/contact_matrices.tif",
      width = 900, height = 900)
 # Current options based on availability of data
-grid_arrange_shared_legend(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI,
-                           ncol = 4, nrow = 3)
+grid_arrange_shared_legend(BE + no_x_axis, FI + no_axes, DE + no_axes, 
+                           IE + no_x_axis, IT + no_axes, LU + no_axes,
+                           NL + no_x_axis, SK + no_axes, UK + no_axes, 
+                           RS, SI + no_y_axis,
+                           ncol = 3, nrow = 4)
 while(!is.null(dev.list())) dev.off()
 
 ## Plot population
@@ -435,6 +460,9 @@ plot_pop <- function(code, ...){
                        y = popSize)) +
     geom_col(width = 1) +
     labs(y = "Population", x = "Age", title = code) +
+    scale_y_continuous(breaks = seq(2500, 3e05, 5000),
+                       labels = seq(2500, 3e05, 5000)) +
+    ylim(0, 3e05) +
     coord_flip() +
     theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
                        title = element_text(family = "serif"))
@@ -446,5 +474,9 @@ lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]],
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/population.tif",
      width = 800, height = 600)
 # Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
+grid.arrange(BE + no_x_axis, FI + no_axes, DE + no_axes, 
+             IE + no_x_axis, IT + no_axes, LU + no_axes,
+             NL + no_x_axis, SK + no_axes, UK + no_axes, 
+             RS, SI + no_y_axis,
+             ncol = 3, nrow = 4)
 while(!is.null(dev.list())) dev.off()
