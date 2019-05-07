@@ -354,7 +354,10 @@ plot_death <- function(code, ...){
     labs(x = "Age", y = "Deaths per 100,000", title = code) +
     geom_line() +
     theme(plot.title = element_text(hjust = 0.5), # Ensure centred titles
-          title = element_text(family = "serif"))
+          title = element_text(family = "serif")) +
+    scale_y_continuous(breaks = seq(5000, 5e04, 5000),
+                       labels = seq(5000, 5e04, 5000)) + 
+    ylim(0, 5e04)
 }
 
 # Save list of plots for the countries in use
