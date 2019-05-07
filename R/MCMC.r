@@ -73,7 +73,7 @@ obsData <- seroData$indic
 		bij <- 365 * qij * rij[1 : Lmax, 1 : Lmax]
 	}
 	
-    if(prop_fac == "extloglin"){
+    if(propFac == "extloglin"){
       if(length(param0) != 3){
         stop("length of param0 does not fit choice of proportionality factor")
       }
@@ -139,7 +139,7 @@ obsData <- seroData$indic
 	R <- max(as.double(Rvec)) # spectral radius
 
     ll[!is.finite(ll)] <- 0 
-	return(list(lnLike =  2 * sum(ll),     # log-likelihood
+	return(list(lnLike = sum(ll),  # log-likelihood
 			    R0 = R0,         # R0
 				R = R,           # R
 				prev = prev,     # estimated seroprevalence
@@ -153,13 +153,16 @@ obsData <- seroData$indic
 ###################
 
 ## Initialise MCMC params
+# no. of parameters to be estimated 
 nEstimate <- case_when(
 				propFac == "constant" ~ 1,
 				propFac == "loglin" ~ 2,
-				propFac == "extloglin" ~ 3,) # no. of parameters to be estimated 
-nIter <- 1e3                    # number of iterations per chain
+				propFac == "extloglin" ~ 3
+				) 
+				
+nIter <- 1e3 # number of iterations per chain
 
-prior <- c(-4, -3, 0.02, 0.05, -0.05 ,0) # set uniform prior for q params
+prior <- c(-2.2, -1.5, -0.1, 0) # set uniform prior for q params
 #prior <- c(-5, 5)
 dim(prior) <- c(2, nEstimate)
 prior <- t(prior) 
@@ -167,7 +170,7 @@ prior <- t(prior)
 scaleDisp <- 1e-3				# set scaling factor for dispersion           
 dispProp <-  diag(nEstimate) * scaleDisp * (prior[,2]-prior[,1]) # dispersal parameter
 
-acc <- 0                        # Initialise acceptance
+acc <- 0  # Initialise acceptance
 
 mcmcOutput <- rep(NA, (nEstimate+1)*nIter)  # Initialise output
 dim(mcmcOutput) <- c(nIter,(nEstimate+1))
@@ -176,7 +179,7 @@ dim(mcmcOutput) <- c(nIter,(nEstimate+1))
 ## Initialise chain ##
 ######################
 #param0 <- -0.5
-param0 <- c(-4.5, 0.03, 0) # initial values for q parameters
+param0 <- c(-2, -0.05) # initial values for q parameters
 lnLike0 <- FoI(param0, otherParams, seroData)$lnLike # Initialise log-likelihood
 
 ptm <- proc.time()[3] # set clock
@@ -207,7 +210,7 @@ for(i in 1:nIter){
 		acc <- acc+1
 	}
 
-	acc.rate <-  (acc*100)/i
+	acc.rate <- (acc*100)/i
 	cat("\nAcceptance rate at jump", i, "is", round(acc.rate, digits=2) ,"%\n")
 
 	mcmcOutput[i,1:nEstimate] <- param0
@@ -221,7 +224,7 @@ mcmcResults <- window(mcmcOutput, start=1) #
 plot(mcmcResults)
 ESS <- effectiveSize(mcmcResults)
 
-AIC <- (2*nEstimate) + max(mcmcOutput[,ncol(mcmcOutput)]) # Akaike information criterion
+AIC <- (2*nEstimate) + 2 * max(mcmcOutput[,ncol(mcmcOutput)]) # Akaike information criterion
 
 mcmcOutput <- as_tibble(mcmcOutput)
 burnIn <- 100
@@ -278,7 +281,7 @@ sampledR <- sampledResults %>% {
 					}
 										
 sampledR <- bind_cols(postSample, sampledR)
-sampledR %>% filter(R >= 0.95 & R < 1.05) # filter for parameter sets close to endmeic eqm
+#sampledR %>% filter(R >= 0.95 & R < 1.05) # filter for parameter sets close to endmeic eqm
 
 # Re-format force of infection estimates from sampled parameters
 sampledFoI <- map_dfc(sampledResults, extract, "foi")
