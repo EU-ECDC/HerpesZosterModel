@@ -123,6 +123,6 @@ save_vals <- function(i){
 library(XLConnect)
 sapply(1 : length(use), function(i){
   mcmc_save <- loadWorkbook("MCMC settings.xlsx")
-  appendWorksheet(mcmc_save, t(c(use[i], save_vals(code))), sheet = 1)
+  appendWorksheet(mcmc_save, t(c(use[i], save_vals(i)), sheet = 1)
   saveWorkbook(mcmc_save)
 })
