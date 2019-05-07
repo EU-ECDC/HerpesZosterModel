@@ -306,6 +306,20 @@ use <- c(countries$code[countries$name %in%
                           unique(esen$COUNTRY)], "UK", "RS", "SI")
 
 # Plots of data ----------------------------------------------------------------
+
+no_axes <- theme(#axis.line = element_blank(),
+  axis.text.x = element_blank(),
+  axis.text.y = element_blank(),
+  #axis.ticks = element_blank(),
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank())
+
+no_x_axis <- theme(axis.text.x = element_blank(),
+                   axis.title.x = element_blank())
+
+no_y_axis <- theme(axis.text.y = element_blank(),
+                   axis.title.y = element_blank())
+
 ## Plot mortality
 plot_mort <- function(code, ...){
   get_data(code)
@@ -313,7 +327,10 @@ plot_mort <- function(code, ...){
     labs(title = code, y = "Predicted deaths", x = "Age (smoothed)") +
     theme_classic() + theme(plot.title = element_text(hjust = 1,
                                                       margin = margin(t = 10, b = - 20)),
-          title = element_text(family = "serif"))
+          title = element_text(family = "serif")) +
+    scale_y_continuous(breaks = seq(- 10, 0, 2.5),
+                       labels = seq(- 10, 0, 2.5)) + 
+    ylim(- 10, 0)
 }
 
 # Save list of plots for the countries in use
@@ -321,19 +338,6 @@ plot_list <- lapply(use, plot_mort)
 # Save the plots as their country codes
 lapply(seq_along(1 : length(use)), function(x){assign(use[x], plot_list[[x]], 
                                                       envir = .GlobalEnv)})
-
-no_axes <- theme(#axis.line = element_blank(),
-                 axis.text.x = element_blank(),
-                 axis.text.y = element_blank(),
-                 #axis.ticks = element_blank(),
-                 axis.title.x = element_blank(),
-                 axis.title.y = element_blank())
-
-no_x_axis <- theme(axis.text.x = element_blank(),
-                   axis.title.x = element_blank())
-
-no_y_axis <- theme(axis.text.y = element_blank(),
-                   axis.title.y = element_blank())
 
 tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/mortality.tif",
      width = 800, height = 600)
