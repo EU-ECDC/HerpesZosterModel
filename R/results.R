@@ -9,8 +9,7 @@ library(gridExtra)
 get_results <- function(code, ...){
   get_data(code)
   #source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/MCMC.r")
-  #source("MCMC.r") # Use the local version
-  source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/additional_plots/R/MCMC.r")
+  source("MCMC.r") # Use the local version
   return(list(code = code,
               dispProp = dispProp,
               mcmcOutput = mcmcOutput,
