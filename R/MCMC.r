@@ -160,32 +160,105 @@ nEstimate <- case_when(
 				propFac == "extloglin" ~ 3
 				) 
 				
-nIter <- 1e3 # number of iterations per chain
+nIter <- 2e3 # number of iterations per chain
 
-prior <- c(-2.2, -1.5, -0.1, 0) # set uniform prior for q params
+prior <- c(-2, -1, -0.1, 0, -0.5, 0) # set uniform prior for q params
 #prior <- c(-5, 5)
 dim(prior) <- c(2, nEstimate)
 prior <- t(prior) 
 
-scaleDisp <- 1e-3				# set scaling factor for dispersion           
-dispProp <-  diag(nEstimate) * scaleDisp * (prior[,2]-prior[,1]) # dispersal parameter
-
+init.scale.sd  <- 1e-2	# set scaling factor for proposal distribution  
+covmat.proposal <-  diag(nEstimate) * init.scale.sd  * (prior[,2]-prior[,1]) # proposal distribution
+adapt.size.start <- 100
+adapt.size.cooling <- 0.99
+adapt.shape.start <- 75
+adapt.shape.stop <- NULL
+max.scaling.sd <- 50
+   
 acc <- 0  # Initialise acceptance
 
 mcmcOutput <- rep(NA, (nEstimate+1)*nIter)  # Initialise output
 dim(mcmcOutput) <- c(nIter,(nEstimate+1))
 
+
+## Function for updating covariance matrix
+updateCovmat <- function(covmat, param.mean, param0, i) {
+
+    residual <- as.vector(param0-param.mean)
+    covmat <- (covmat*(i-1)+(i-1)/i*residual%*%t(residual))/i
+    param.mean <- param.mean + residual/i
+
+    return(list(covmat=covmat,param.mean=param.mean))
+}
+
 ######################
 ## Initialise chain ##
 ######################
 #param0 <- -0.5
-param0 <- c(-2, -0.05) # initial values for q parameters
+param0 <- c(-1.5, -0.05, -0.25) # initial values for q parameters
 lnLike0 <- FoI(param0, otherParams, seroData)$lnLike # Initialise log-likelihood
 
-ptm <- proc.time()[3] # set clock
-for(i in 1:nIter){
+# Initialise covariance matrix
+covmat.proposal.init <- covmat.proposal
 
-	param1 <- drop(rmvnorm(1, mean=param0, sigma=dispProp))
+adapting.size <- FALSE # will be set to TRUE once we start adapting the size               
+adapting.shape <- 0  # will be set to the iteration at which adaptation starts
+
+# scaling factor for covmat size
+scaling.sd  <- 1
+
+# scaling multiplier
+scaling.multiplier <- 1
+
+# empirical covariance matrix (0 everywhere initially)
+covmat.empirical <- covmat.proposal
+covmat.empirical[,] <- 0
+
+# empirical mean vector
+param.mean <- param0
+
+ptm <- proc.time()[3] # set clock
+for(i.iteration in 1:nIter){
+
+        # Adaptation of proposal distribution
+        if (!is.null(adapt.size.start) && i.iteration >= adapt.size.start &&
+           (is.null(adapt.shape.start) || acc.rate*i.iteration < adapt.shape.start)) {
+            if (!adapting.size) {
+                message("\n---> Start adapting size of covariance matrix")
+                adapting.size <- TRUE
+            }
+            # adapt size of covmat until we get enough accepted jumps
+            scaling.multiplier <- exp(adapt.size.cooling^(i.iteration-adapt.size.start) * (acc.rate - 0.234))
+            scaling.sd <- scaling.sd * scaling.multiplier
+            scaling.sd <- min(c(scaling.sd, max.scaling.sd))
+            # only scale if it doesn't reduce the covariance matrix to 0
+            covmat.proposal.new <- scaling.sd^2 * covmat.proposal.init
+            if (!(any(diag(covmat.proposal.new) <
+                .Machine$double.eps))) {
+                covmat.proposal <- covmat.proposal.new
+            }
+
+        } else if (!is.null(adapt.shape.start) &&
+                   acc.rate*i.iteration >= adapt.shape.start &&
+                   (adapting.shape == 0 || is.null(adapt.shape.stop) || 
+                    i.iteration < adapting.shape + adapt.shape.stop)) {
+            if (!adapting.shape) {
+                message("\n---> Start adapting shape of covariance matrix")
+                # flush.console()
+                adapting.shape <- i.iteration
+            }
+
+            ## adapt shape of covariance matrix using optimal scaling factor for multivariate target distributions
+            scaling.sd <- 2.38/sqrt(nEstimate)
+
+            covmat.proposal <- scaling.sd^2 * covmat.empirical
+        } else if (adapting.shape > 0) {
+            message("\n---> Stop adapting shape of covariance matrix")
+            adapting.shape <- -1
+        }
+
+
+	param1 <- drop(rmvnorm(1, mean=param0, sigma=covmat.proposal))
 
 	# Ensure that sampled parameters fall within prior. If not, then bounce off boundary
 	for(j in 1:length(prior[,1])){
@@ -195,7 +268,7 @@ for(i in 1:nIter){
 	lnLike1 <- FoI(param1, otherParams, seroData)$lnLike
 
 	if(!is.na(lnLike1)){
-		logAlpha <- (lnLike1 + dmvnorm(param0, param1, dispProp, log=T)) - (lnLike0 + dmvnorm(param1, param0, dispProp, log=T)) 
+		logAlpha <- (lnLike1 + dmvnorm(param0, param1, covmat.proposal, log=T)) - (lnLike0 + dmvnorm(param1, param0, covmat.proposal, log=T)) 
 
 		alpha <- exp(logAlpha)
 		if(alpha > 1) alpha <- 1
@@ -210,25 +283,34 @@ for(i in 1:nIter){
 		acc <- acc+1
 	}
 
-	acc.rate <- (acc*100)/i
-	cat("\nAcceptance rate at jump", i, "is", round(acc.rate, digits=2) ,"%\n")
+ # update empirical covariance matrix
+    if (adapting.shape >= 0) {
+        tmp <- updateCovmat(covmat.empirical, param.mean,
+                            param0, i.iteration)
+        covmat.empirical <- tmp$covmat
+        param.mean <- tmp$param.mean
+        }
+		
+	acc.rate <- acc/i.iteration
+	cat("\nAcceptance rate at jump", i.iteration, "is", round(acc.rate, digits=3) ,"\n")
 
-	mcmcOutput[i,1:nEstimate] <- param0
-	mcmcOutput[i,(nEstimate+1)] <- lnLike0
+	mcmcOutput[i.iteration,1:nEstimate] <- param0
+	mcmcOutput[i.iteration,(nEstimate+1)] <- lnLike0
 }
 
-cat("\nAlgorithm required", (proc.time()[3]-ptm)/60, "minutes\nwith final acceptance rate", round(acc.rate, digits=2), "%\n")
+cat("\nAlgorithm required", (proc.time()[3]-ptm)/60, "minutes\nwith final acceptance rate", round(acc.rate, digits=3), "\n")
+
+burnIn <- 500
 
 mcmcOutput <- as.mcmc(mcmcOutput) 
-mcmcResults <- window(mcmcOutput, start=1) # 
+mcmcResults <- window(mcmcOutput, start=(1)) # 
 plot(mcmcResults)
 ESS <- effectiveSize(mcmcResults)
 
 AIC <- (2*nEstimate) + 2 * max(mcmcOutput[,ncol(mcmcOutput)]) # Akaike information criterion
 
 mcmcOutput <- as_tibble(mcmcOutput)
-burnIn <- 100
-sampleSize <- 250
+sampleSize <- 100
 
 if(propFac == "constant"){
 postSample <- mcmcOutput %>% tail(-burnIn) %>%
