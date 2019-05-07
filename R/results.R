@@ -58,7 +58,8 @@ plot_list <- mclapply(1 : length(use), function(i){
     scale_size_continuous(limits = c(1, 500),
                           breaks=c(50, 100, 150, 200,
                                    250, 300, 400, 500)) +
-    theme(plot.title = element_text(hjust = 0.5),
+    theme(plot.title = element_text(hjust = 1,
+                                    margin = margin(t = 10, b = - 20)),
           title = element_text(family = "serif"))})
 lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
                                                 envir = .GlobalEnv)})
@@ -95,7 +96,8 @@ ggplot() +
   geom_joy(data = dat, 
            mapping = aes(x = R, y = country, height = ..density..),
            scale = 0.85) +
-  theme(plot.title = element_text(hjust = 0.5),
+  theme(plot.title = element_text(hjust = 1,
+                                  margin = margin(t = 10, b = - 20)),
         title = element_text(family = "serif"))
 while(!is.null(dev.list())) dev.off()
 
@@ -105,7 +107,8 @@ ggplot() +
   geom_joy(data = dat, 
            mapping = aes(x = R0, y = country, height = ..density..),
            scale = 0.85) +
-  theme(plot.title = element_text(hjust = 0.5),
+  theme(plot.title = element_text(hjust = 1,
+                                  margin = margin(t = 10, b = - 20)),
         title = element_text(family = "serif"))
 while(!is.null(dev.list())) dev.off()
 
