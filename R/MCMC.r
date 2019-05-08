@@ -15,29 +15,7 @@ colours1 <- colorRampPalette(ECDCcol)(5)
 ## Initialisation ##
 ####################
 
-## Helen, tidy this up!
-rij <- contact_w     # country-specific contact matrix
-N <- sum(popSize)   # population size
-D <- 6 / 365        # duration of infection?!
-A <- 0.5            # duration of maternally-derived immunity
-propFac <- "extloglin" # type of proportionality factor
-Lmax <- 70 
 
-muy <- predict(demfit, type = "response")
-muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
-My <- exp(- cumsum(muy)) # Type I mortality
-L <- Lmax * mean(My) # Life expectancy
-My <- My[1 : Lmax] # Ensure no longer than life expectancy
- 
- 
-## Group fixed parameters 
-otherParams <- list(rij = contact_w,     # country-specific contact matrix
-					N = nrow(seroData),  # sum(popSize),   # population size
-					D = 6 / 365,        # duration of infection?!
-					A = 0.5,            # duration of maternally-derived immunity
-					propFac = "constant", # type of proportionality factor
-					Lmax = 70           # life expectancy
-					)
  
 #####################################
 ## Estimate force of infection     ##
@@ -162,8 +140,6 @@ nEstimate <- case_when(
 				
 nIter <- 2e3 # number of iterations per chain
 
-prior <- c(-2, -1, -0.1, 0, -0.5, 0) # set uniform prior for q params
-#prior <- c(-5, 5)
 dim(prior) <- c(2, nEstimate)
 prior <- t(prior)
 
@@ -198,8 +174,7 @@ updateCovmat <- function(covmat, param.mean, param0, i) {
 ######################
 ## Initialise chain ##
 ######################
-#param0 <- -0.5
-param0 <- c(-1.5, -0.05, -0.25) # initial values for q parameters
+
 if(length(param0) / nEstimate != 1)
   warning("Parameter input length does not match desired propFac")
 lnLike0 <- FoI(param0, otherParams, seroData)$lnLike # Initialise log-likelihood
@@ -410,38 +385,3 @@ summaryPrev <- sampledPrev %>%
 					upper = quantile(prev, probs = width1)) %>%
 				mutate(width = width1) %>%
 				mutate(point = "median")
-
-# Plot force of infection and prevalence
-htab <- table(
-  floor(
-    seroData[(seroData$AGE > 0.5) & 
-               (seroData$AGE < 80) &
-               (!is.na(seroData$AGE)) & 
-               !is.na(seroData$indic), ]$AGE[order(seroData[(seroData$AGE > 0.5) & 
-                                                              (seroData$AGE < 80) &
-                                                              (!is.na(seroData$AGE)) & 
-                                                              !is.na(seroData$indic), ]$AGE)]),
-  seroData[(seroData$AGE > 0.5) &
-             (seroData$AGE < 80) &
-             (!is.na(seroData$AGE)) & 
-             !is.na(seroData$indic), ]$indic[order(seroData[(seroData$AGE > 0.5) & 
-                                                              (seroData$AGE < 80) &
-                                                              (!is.na(seroData$AGE)) & 
-                                                              !is.na(seroData$indic), ]$AGE)])
-
-(p <- ggplot() +
-    geom_line(data = summaryFoI, mapping = aes(x = age, y = midFoi),
-              size = 0.01, alpha = 0.8) +
-    geom_ribbon(data = summaryFoI, mapping = aes(x = age, ymin = lower, ymax = upper),
-                fill = "blue", alpha = 0.2) +
-    geom_line(data = summaryPrev, mapping = aes(x = age, y = midPrev),
-              size = 0.01, alpha = 0.8) +
-    geom_ribbon(data = summaryPrev, mapping = aes(x = age, ymin = lower, ymax = upper),
-                fill = "dark green", alpha = 0.3) +
-    ylim(0, 1) +
-    geom_point(data = as.data.frame(cbind(age = as.numeric(row.names(htab)), 
-                                          prop = htab[, 2] / rowSums(htab),
-                                          tot = rowSums(htab))),
-               mapping = aes(x = age, y = prop, size = tot),
-               pch = 1) +
-    labs(y = "", size = "number of samples"))

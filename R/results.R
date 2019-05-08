@@ -1,25 +1,67 @@
-source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/load_data.R")
-source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/model.R")
+library(XLConnect)
+library(lubridate)
 
-library(ggplot2)
-theme_set(theme_classic() %+replace%
-            theme(plot.title = element_text(hjust = 0.5))) # Ensure centred titles
-library(gridExtra)
-
-# Plot
-plot_results <- function(code, ...){
+#calc <- function(code){
+  
   get_data(code)
-  source("https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/R/MCMC.r")
-  p + labs(title = code)
-}
-library(parallel)
-plot_list <- mclapply(use, plot_results)
-lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
-                                                envir = .GlobalEnv)})
+  ## Helen, tidy this up!
+  rij <- contact_w     # country-specific contact matrix
+  N <- sum(popSize)   # population size
+  D <- 6 / 365        # duration of infection?!
+  A <- 0.5            # duration of maternally-derived immunity
+  propFac <- "extloglin" # type of proportionality factor
+  Lmax <- 70 
+  
+  muy <- predict(demfit, type = "response")
+  muy <- muy[1 : Lmax] # Ensure not longer than life expectancy
+  My <- exp(- cumsum(muy)) # Type I mortality
+  L <- Lmax * mean(My) # Life expectancy
+  My <- My[1 : Lmax] # Ensure no longer than life expectancy
 
-# Save plot
-tiff("S:/HelenJohnson/Herpes Zoster/Figures/overview_all.tif",
-     width = 1400, height = 800)
-# Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
-while(!is.null(dev.list())) dev.off()
+  prior <- c(-2, -1, -0.1, 0, -0.5, 0) # set uniform prior for q params
+  #prior <- c(-5, 5)
+  #param0 <- -0.5
+  param0 <- c(-1.5, -0.05, -0.25) # initial values for q parameters
+  
+  source("MCMC.r")
+  vals <- list(country = code, propFac = propFac, prior = prior, 
+               init.scale.sd = init.scale.sd, nIter = nIter, acc.rate = acc.rate, 
+               param0 = param0, mcmcOutput = mcmcOutput, postSample = postSample, 
+               sampledResults = sampledResults, ESS = ESS, AIC = AIC, 
+               date = today())
+#  return(vals)
+#}
+
+code <- "BE"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resBE_extloglin_1.txt")
+# Currently saving plots manually
+
+code <- "DE"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resDE_extloglin_1.txt")
+
+code <- "FI"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resFI_extloglin_1.txt")
+
+code <- "IE"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resIE_extloglin_1.txt")
+
+code <- "IT"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resIT_extloglin_1.txt")
+
+code <- "LU"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resLU_extloglin_1.txt")
+
+code <- "NL"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resNL_extloglin_1.txt")
+
+code <- "SK"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resSK_extloglin_1.txt")
+
+code <- "UK"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resUK_extloglin_1.txt")
+
+code <- "RS"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resRS_extloglin_1.txt")
+
+code <- "SI"
+dput(vals, file = "S:/HelenJohnson/Herpes Zoster/resSI_extloglin_1.txt")
