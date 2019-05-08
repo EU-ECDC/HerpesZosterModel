@@ -20,7 +20,7 @@ rij <- contact_w     # country-specific contact matrix
 N <- sum(popSize)   # population size
 D <- 6 / 365        # duration of infection?!
 A <- 0.5            # duration of maternally-derived immunity
-propFac <- "loglin" # type of proportionality factor
+propFac <- "extloglin" # type of proportionality factor
 Lmax <- 70 
 
 muy <- predict(demfit, type = "response")
@@ -53,7 +53,7 @@ obsData <- seroData$indic
 
 ## Generate transmission matrix
 	if(propFac == "constant"){
-		if(length(param0) != 1){
+		if(length(fitParams) != 1){
 			stop("length of param0 does not fit choice of constant proportionality factor")
 		}
 		# Create transmission matrix with constant parameter
@@ -63,7 +63,7 @@ obsData <- seroData$indic
 	
     if(propFac == "loglin"){ # First option (age-dependent susceptibility)
 		# Check start parameters fit with prop. factor type
-		if(length(param0) != 2){
+		if(length(fitParams) != 2){
 			stop("length of param0 does not fit choice of proportionality factor")
 		}
 	  
@@ -74,7 +74,7 @@ obsData <- seroData$indic
 	}
 	
     if(propFac == "extloglin"){
-      if(length(param0) != 3){
+      if(length(fitParams) != 3){
         stop("length of param0 does not fit choice of proportionality factor")
       }
       # Create transmission matrix with extended log-linear parameters
@@ -165,7 +165,10 @@ nIter <- 2e3 # number of iterations per chain
 prior <- c(-2, -1, -0.1, 0, -0.5, 0) # set uniform prior for q params
 #prior <- c(-5, 5)
 dim(prior) <- c(2, nEstimate)
-prior <- t(prior) 
+prior <- t(prior)
+
+if(dim(prior)[1] / nEstimate != 1)
+  warning("Prior length does not match desired propFac")
 
 init.scale.sd  <- 1e-2	# set scaling factor for proposal distribution  
 covmat.proposal <-  diag(nEstimate) * init.scale.sd  * (prior[,2]-prior[,1]) # proposal distribution
@@ -197,6 +200,8 @@ updateCovmat <- function(covmat, param.mean, param0, i) {
 ######################
 #param0 <- -0.5
 param0 <- c(-1.5, -0.05, -0.25) # initial values for q parameters
+if(length(param0) / nEstimate != 1)
+  warning("Parameter input length does not match desired propFac")
 lnLike0 <- FoI(param0, otherParams, seroData)$lnLike # Initialise log-likelihood
 
 # Initialise covariance matrix
