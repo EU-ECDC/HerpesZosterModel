@@ -11,8 +11,8 @@ library(eurostat) # Data
 library(akima) # For interpolation
 library(gridExtra) # For plotting
 library(ggplot2) # For plotting
-theme_set(theme_classic() %+replace%
-            theme(plot.title = element_text(hjust = 0.5))) # Ensure centred titles
+library(lemon) # For shared legend
+theme_set(theme_classic())
 library(voxel) # For plotGAM
 
 # Load data
@@ -179,7 +179,7 @@ get_data <- function(code){
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
-      AGE <- gsub("[A-z]","", AGE)
+      AGE <- gsub("[A-z]", "", AGE)
       AGE <- as.numeric(AGE)
       # Ensure both follow same age pattern
       AGE <- sort(AGE, index.return = TRUE)$`x`
@@ -240,7 +240,7 @@ get_data <- function(code){
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
-      AGE <- gsub("[A-z]","", AGE)
+      AGE <- gsub("[A-z]", "", AGE)
       AGE <- as.numeric(AGE)
       AGE <- sort(AGE, index.return = TRUE)$`x`
       dat <- dat[sort(AGE, index.return = TRUE)$ix, ]$values
@@ -264,7 +264,7 @@ get_data <- function(code){
     weigh <- function(x, dat, mat){
       AGE <- droplevels(dat$age)
       levels(AGE)[length(levels(AGE))] <- "0.5"
-      AGE <- gsub("[A-z]","", AGE)
+      AGE <- gsub("[A-z]", "", AGE)
       AGE <- as.numeric(AGE)
       AGE <- sort(AGE, index.return = TRUE)$`x`
       dat <- dat[sort(AGE, index.return = TRUE)$ix, ]$values
@@ -304,132 +304,3 @@ get_data <- function(code){
 # Countries for which we have seroprevalence data
 use <- c(countries$code[countries$name %in% 
                           unique(esen$COUNTRY)], "UK", "RS", "SI")
-
-# Plots of data ----------------------------------------------------------------
-## Plot mortality
-plot_mort <- function(code, ...){
-  get_data(code)
-  plotGAM(gamFit = demfit, smooth.cov = "mortAge") +
-    labs(title = code) +
-    theme_classic() + 
-    theme(plot.title = element_text(hjust = 0.5))
-}
-
-# Save list of plots for the countries in use
-plot_list <- lapply(use, plot_mort)
-# Save the plots as their country codes
-lapply(seq_along(1 : length(use)), function(x){assign(use[x], plot_list[[x]], 
-                                                      envir = .GlobalEnv)})
-
-tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/mortality.tif",
-     width = 800, height = 600)
-# Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
-# TODO see if we can replace ^ with use somehow
-while(!is.null(dev.list())) dev.off()
-
-## Plot deaths
-plot_death <- function(code, ...){
-  get_data(code)
-  ggplot(mapping = aes(x = age, y = rate), 
-         data = as.data.frame(cbind(age = 1 : length(popSize),
-                                    rate = demfit$model$nDeaths / popSize * 1e+05))) + 
-    labs(x = "Age", y = "Deaths per 100000", title = code) +
-    geom_line() +
-    theme(plot.title = element_text(hjust = 0.5))
-}
-
-# Save list of plots for the countries in use
-plot_list <- lapply(use, plot_death)
-# Save the plots as their country codes
-lapply(seq_along(1 : length(use)), function(x){assign(use[x], plot_list[[x]], 
-                                                      envir = .GlobalEnv)})
-
-tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/deaths.tif",
-     width = 800, height = 600)
-# Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
-while(!is.null(dev.list())) dev.off()
-
-## Plot serological data
-plot_sero <- function(code, ...){
-  get_data(code)
-  seroData <- seroData[(seroData$AGE > 0.5) & (seroData$AGE < 80) &
-    (!is.na(seroData$AGE)) & !is.na(seroData$indic), ]
-  # Table with seroprevalence for each single year of age
-  htab <- table(floor(seroData$AGE[order(seroData$AGE)]), 
-                seroData$indic[order(seroData$AGE)])
-  
-  ggplot(data = as.data.frame(cbind(age = as.numeric(row.names(htab)), 
-                                    prop = htab[, 2] / rowSums(htab),
-                                    tot = rowSums(htab))),
-         mapping = aes(x = age, y = prop, size = tot)) +
-    geom_point(pch = 1) + 
-    labs(x = "age", y = "sero-prevalence", title = code) + 
-    xlim(0, 72) + ylim(- 0.1, 1) + theme(legend.title = element_blank())
-}
-
-# Save list of plots and assign to the environment
-plot_list <- lapply(use, plot_sero)
-lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
-                                                envir = .GlobalEnv)})
-
-tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/serology.tif",
-     width = 800, height = 600)
-# Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
-while(!is.null(dev.list())) dev.off()
-
-## Plot contact rates
-# Adapted from https://raw.githubusercontent.com/EU-ECDC/HerpesZosterModel/master/old_scripts/plots/plot_polymod_matrix.R
-plot_mat <- function(code, ...){
-  get_data(code)
-  tmp <- melt(contact_w)
-  p <- ggplot(data = tmp, aes_string(x = names(tmp)[1], y = names(tmp)[2], 
-                                fill = names(tmp)[3])) + 
-    geom_tile() + 
-    scale_fill_viridis_c(direction = - 1, option = "E", ...) +
-    labs(x = "", y = "", title = code) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    # Rotate x-axis labels
-    if(is.factor(tmp[, 1])){ # Add spacing
-      scale_x_discrete(breaks = levels(tmp[, 1])[c(TRUE, rep(FALSE, 9))])
-    } else {
-      NULL
-    }
-  p <- p +
-    if(is.factor(tmp[, 2])){ # Add spacing
-      scale_y_discrete(breaks = levels(tmp[, 2])[c(TRUE, rep(FALSE, 9))])
-    } else {
-      NULL
-    }
-  return(p)
-}
-plot_list <- lapply(use, plot_mat)
-lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
-                                                envir = .GlobalEnv)})
-tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/contact_matrices.tif",
-     width = 800, height = 600)
-# Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
-while(!is.null(dev.list())) dev.off()
-
-## Plot population
-plot_pop <- function(code, ...){
-  get_data(code)
-  ggplot(data = data.frame(age = 1 : length(popSize), popSize), 
-         mapping = aes(x = age, 
-                       y = popSize)) +
-    geom_col(width = 1) +
-    labs(y = "Population", x = "Age", title = code) +
-    coord_flip() 
-}
-plot_list <- lapply(use, plot_pop)
-lapply(seq_along(plot_list), function(x){assign(use[x], plot_list[[x]], 
-                                                envir = .GlobalEnv)})
-
-tiff(filename = "S:/HelenJohnson/Herpes Zoster/Figures/population.tif",
-     width = 800, height = 600)
-# Current options based on availability of data
-grid.arrange(BE, FI, DE, IE, IT, LU, NL, SK, UK, RS, SI)
-while(!is.null(dev.list())) dev.off()
