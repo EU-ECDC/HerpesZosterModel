@@ -33,7 +33,7 @@ input <- init(code = "BE",
               A = 0.5,
               Lmax = 70,
               prior = c(-2, 1, -0.1, 0, -0.5, 0),
-              param0 = c(-1.5, -0.05, -0.25),
+              param0 = c(0, 0, 0),
               propFac = "extloglin")
 
 param0 <- input$param0
