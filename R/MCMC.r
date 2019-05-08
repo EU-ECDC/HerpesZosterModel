@@ -176,6 +176,7 @@ adapt.shape.stop <- NULL
 max.scaling.sd <- 50
    
 acc <- 0  # Initialise acceptance
+acc.rate <- 1 #Initalise acceptance rate		  
 
 mcmcOutput <- rep(NA, (nEstimate+1)*nIter)  # Initialise output
 dim(mcmcOutput) <- c(nIter,(nEstimate+1))
