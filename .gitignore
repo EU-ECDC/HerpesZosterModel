@@ -40,3 +40,4 @@ vignettes/*.pdf
 
 ## hyperref
 .out
+R/Mixture of experts.r
