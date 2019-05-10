@@ -267,9 +267,9 @@ for(i.iteration in 1:nIter){
 	param1 <- drop(rmvnorm(1, mean=param0, sigma=covmat.proposal))
 
 	# Ensure that sampled parameters fall within prior. If not, then bounce off boundary
-	for(j in 1:length(prior[,1])){
-		param1[j] <- ifelse(param1[j] > prior[j,2], prior[j,2]-((param1[j]-prior[j,2])%%(prior[j,2]-prior[j,1])), ifelse(param1[j] < prior[j,1], prior[j,1]+((prior[j,1]-param1[j])%%(prior[j,2]-prior[j,1])), param1[j]))
-	}
+	#for(j in 1:length(prior[,1])){
+#		param1[j] <- ifelse(param1[j] > prior[j,2], prior[j,2]-((param1[j]-prior[j,2])%%(prior[j,2]-prior[j,1])), ifelse(param1[j] < prior[j,1], prior[j,1]+((prior[j,1]-param1[j])%%(prior[j,2]-prior[j,1])), param1[j]))
+#	}
 
 	lnLike1 <- FoI(param1, otherParams, seroData)$lnLike
 
