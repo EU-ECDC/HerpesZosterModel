@@ -54,6 +54,7 @@ obsData <- seroData$indic
 ## Generate transmission matrix
 	if(propFac == "constant"){
 		if(length(fitParams) != 1){
+
 			stop("length of param0 does not fit choice of constant proportionality factor")
 		}
 		# Create transmission matrix with constant parameter
@@ -370,6 +371,7 @@ sampledR <- sampledResults %>% {
 										
 sampledR <- bind_cols(postSample, sampledR)
 #sampledR %>% filter(R >= 0.95 & R < 1.05) # filter for parameter sets close to endmeic eqm
+
 
 # Re-format force of infection estimates from sampled parameters
 sampledFoI <- map_dfc(sampledResults, extract, "foi")
