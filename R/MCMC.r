@@ -404,6 +404,7 @@ sampledPrev <- as_tibble(unique(cbind(seroData$AGE, sampledPrev))) %>% # combine
 
 summaryPrev <- sampledPrev %>% 
 				group_by(age) %>% 
+          filter(age<= 70) %>%
 					summarise(n = n(),
 					midPrev = median(prev),
 					lower = quantile(prev, probs = (1-width1)),
