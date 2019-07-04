@@ -5,7 +5,7 @@ library(ggplot2) # For plotting
 library(gridExtra)
 library(viridis) # For colours
 library(scales)
-#TODO: use library(gganimate)
+library(gganimate)
 
 # Load UN WPP data
 file <- "https://population.un.org/wpp/DVD/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2017_TotalPopulationBySex.csv"
@@ -57,126 +57,42 @@ data$AgeGrp <- factor(data$AgeGrp,
                                  "55-59", "60-64", "65-69", "70-74", "75-79",
                                  "80+", "80-84", "85-89", "90-94", "95-99", "100+"))
 
-# Plot pyramids over time (three snapshots)
-p1 <- ggplot(data = data %>% filter(Time == 2015) %>% filter(Sex == "PopTotal"), 
-             mapping = aes(x = AgeGrp, fill = Sex, 
-                           y = ifelse(test = Sex == "PopMale", 
-                                      yes = -Population, no = Population),
-                           colour = Variant)) +
-  geom_bar(stat = "identity") +
-  labs(y = "population") +
-  coord_flip() +
-  facet_wrap(. ~ Location, scales = "free_x") +
-  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(option = "A", discrete = TRUE) +
-  scale_fill_grey(start = 0.6, end = 0.4) +
-  guides(colour = guide_legend(override.aes = list(fill = NA)))
-p2 <- ggplot(data = data %>% filter(Time == 2050) %>% filter(Sex == "PopTotal"), 
-             mapping = aes(x = AgeGrp, fill = Sex, 
-                           y = ifelse(test = Sex == "PopMale", 
-                                      yes = -Population, no = Population),
-                           colour = Variant)) +
-  geom_bar(stat = "identity") +
-  labs(y = "population") +
-  coord_flip() +
-  facet_wrap(. ~ Location, scales = "free_x") +
-  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(option = "A", discrete = TRUE) +
-  scale_fill_grey(start = 0.6, end = 0.4) +
-  guides(colour = guide_legend(override.aes = list(fill = NA)))
-p3 <- ggplot(data = data %>% filter(Time == 2100) %>% filter(Sex == "PopTotal"), 
-             mapping = aes(x = AgeGrp, fill = Sex, 
-                           y = ifelse(test = Sex == "PopMale", 
-                                      yes = -Population, no = Population),
-                           colour = Variant)) +
-  geom_bar(stat = "identity") +
-  labs(y = "population") +
-  coord_flip() +
-  facet_wrap(. ~ Location, scales = "free_x") +
-  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(option = "A", discrete = TRUE) +
-  scale_fill_grey(start = 0.6, end = 0.4) +
-  guides(colour = guide_legend(override.aes = list(fill = NA)))
+# Plot pyramids over time
+# One country selected as example
+use_data <- data %>%
+  filter(LocID == 826) %>%
+  filter(AgeGrp %in% c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29",
+                       "30-34", "35-39", "40-44", "45-49", "50-54",
+                       "55-59", "60-64", "65-69", "70-74", "75-79")) %>%
+  # droplevels didn't seem to work
+  filter(Sex != "PopTotal") %>%
+  filter(VarID == 2) # Medium variant
 
-# Save outputs
-tiff(filename = "../figures/pyramids_over_time.tif",
-     width = 2400, height = 1000)
-grid.arrange(p1, p2, p3, ncol = 3)
-dev.off()
-
-tiff(filename = "../figures/pyramids_2100.tif",
-     width = 1200, height = 1000)
-p3
-dev.off()
-
-p4 <- ggplot(data = data %>% filter(Time == 2100, LocID == 300), 
-             mapping = aes(x = AgeGrp, fill = Sex, 
-                           y = ifelse(test = Sex == "PopMale", 
-                                      yes = -Population, no = Population),
-                           colour = Variant)) +
-  geom_bar(stat = "identity") +
-  labs(y = "Population in thousands", x = "Age group") +
-  coord_flip() +
-  facet_wrap(Variant ~ ., scales = "free_x") +
-  theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(option = "A", discrete = TRUE) +
-  scale_fill_grey(start = 0.6, end = 0.4) +
-  guides(colour = guide_legend(override.aes = list(fill = NA)))
-
-p5 <- ggplot(data = data %>% filter(Time == 2100, LocID == 300), 
-             mapping = aes(x = AgeGrp, fill = Sex, 
-                           y = ifelse(test = Sex == "PopMale", 
-                                      yes = -Population, no = Population),
-                           colour = Variant)) +
-  geom_bar(stat = "identity") +
-  labs(y = "Population in thousands", x = "Age group") +
+# Plot pyramids
+p <- ggplot(data = use_data,
+            mapping = aes(x = AgeGrp, fill = Sex)) +
+  geom_bar(data = subset(use_data, Sex == "PopFemale"), 
+           mapping = aes(y = Population * (- 1)),
+           stat = "identity") + 
+  geom_bar(data = subset(use_data, Sex == "PopMale"),
+           mapping = aes(y = Population),
+           stat = "identity") + 
+  labs(y = "Population") +
+  scale_y_continuous(breaks = seq(- 35e4, 35e4, by = 10e4),
+                     labels = abs(seq(- 35e4, 35e4, by = 10e4))) +
   coord_flip() +
   theme(axis.text.x  = element_text(angle = 90, vjust = 1)) +
-  scale_colour_viridis(option = "A", discrete = TRUE) +
-  scale_fill_grey(start = 0.6, end = 0.4) +
-  guides(colour = guide_legend(override.aes = list(fill = NA))) +
-  theme(legend.position="none")
+  scale_fill_viridis(option = "D", discrete = TRUE) +
+  transition_time(Time) +
+  labs(title = "{frame_time} (UN WPP)")
 
-# Save output
-tiff(filename = "../figures/pyramids_greece.tif",
-     width = 1200, height = 600)
-grid.arrange(p5, p4, ncol = 2)
-dev.off()
+# It goes too fast by default slow it down
+animate(plot = p, duration = 150)
 
-# Plot changes in age group 0-4 over time
-(p <- ggplot(data = left_join(data %>%
-                          filter(Sex == "PopTotal") %>%
-                          filter(AgeGrp == "0-4") %>%
-                          group_by(Location, Variant),
-                        data %>%
-                          filter(Sex == "PopTotal") %>%
-                          filter(AgeGrp == "0-4", Time == 2015) %>%
-                          group_by(Location, Variant) %>%
-                          mutate(Subtr = Population)) %>%
-         select(Time, Location, Variant, Population, Subtr) %>%
-         mutate(Time =  factor(Time, levels = c(2015,
-                                                seq(1950, 2015 - 1, 1),
-                                                seq(2015 + 1, 2100, 1)))) %>%
-         group_by(Location, Variant) %>%
-         arrange(Time) %>%
-         fill(Subtr, Subtr) %>%
-         mutate(Time = factor(Time, levels = c(seq(1950, 2100, 1)))) %>%
-         mutate (PopDiff = Population - Subtr),
-       mapping = aes(x = Time, y = PopDiff,
-                     colour = Location, group = Location)) +
-  geom_line(aes(y = PopDiff)) +
-  labs(title = "Changes from 2015 values", subtitle = "Population aged 0-4") +
-  theme(axis.text.x = element_text(angle = 90)) +
-  facet_grid(. ~ Variant) +
-  scale_colour_viridis(discrete = TRUE, option = "E") +
-  scale_x_discrete(breaks = c("1950", "2000", "2015", "2050", "2100"),
-                   labels = c("1950", "2000", "2015", "2050", "2100")))
-
-# Save output
-tiff(filename = "../figures/changes_pop_age_0-4.tif",
-     width = 1200, height = 600)
-p
-dev.off()
+# Save animation
+anim_save(filename = "temp.gif",
+          animation = last_animation(),
+          path = NULL)
 
 # Load indicators
 file <- "https://population.un.org/wpp/DVD/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2017_Period_Indicators_Medium.csv"
